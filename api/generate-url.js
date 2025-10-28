@@ -1,8 +1,8 @@
-// 使用 'import' 语法导入腾讯云COS的SDK
-import COS from 'cos-nodejs-sdk-v5';
+// 1. ⚠️ 使用 CommonJS 语法导入腾讯云COS的SDK
+const COS = require('cos-nodejs-sdk-v5');
 
-// Vercel Serverless函数的标准入口
-export default function handler(req, res) {
+// 2. ⚠️ 使用 CommonJS 语法导出函数
+module.exports = function handler(req, res) {
 
   // 1. 初始化COS客户端
   // 注意：我们使用了更规范的环境变量名，确保你在Vercel网站上也是这样设置的
@@ -15,7 +15,7 @@ export default function handler(req, res) {
   const params = {
     Bucket: 'video-1383328809', // 你的存储桶全称（格式：桶名-APPID），这个看起来是正确的
     Region: 'ap-hongkong',                  // 你的存储桶所在地域
-    Key: 'lwx.mp4',                         // 你要访问的视频文件名，确保这个文件确实存在于你的存储桶中
+    Key: 'test_video/lwx.mp4',                         // 你要访问的视频文件名，确保这个文件确实存在于你的存储桶中
     Method: 'GET',                          // 我们要生成一个用于获取(播放)的链接
     Expires: 3600,                          // 链接的有效时间，单位秒。这里是1小时
   };

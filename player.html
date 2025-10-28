@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-g">
+    <title>正在播放</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        #player-container { max-width: 900px; margin: auto; }
+        video { width: 100%; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div id="player-container">
+        <h1 id="video-title">加载中...</h1>
+        <div id="video-wrapper"></div>
+        <p id="video-description"></p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const videoId = params.get('id');
+
+            if (!videoId) {
+                document.getElementById('video-title').innerText = '未找到视频';
+                return;
+            }
+
+            try {
+                // 获取所有视频信息以找到对应的key
+                const listResponse = await fetch('/api/videos?action=list');
+                const videos = await listResponse.json();
+                const video = videos.find(v => v.id === videoId);
+
+                if (!video) {
+                    document.getElementById('video-title').innerText = '视频不存在';
+                    return;
+                }
+
+                document.getElementById('video-title').innerText = video.title;
+                document.getElementById('video-description').innerText = video.description;
+
+                // 获取带签名的播放URL
+                const urlResponse = await fetch(`/api/videos?action=get-play-url&key=${video.video_key}`);
+                const { url } = await urlResponse.json();
+
+                const videoElement = document.createElement('video');
+                videoElement.src = url;
+                videoElement.controls = true;
+                document.getElementById('video-wrapper').appendChild(videoElement);
+
+            } catch (error) {
+                document.getElementById('video-title').innerText = '加载视频失败';
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>

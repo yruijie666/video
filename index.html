@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-g">
+    <title>我的视频网站</title>
+    <style>
+        body { font-family: sans-serif; }
+        #video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 20px; }
+       .video-card { border: 1px solid #ccc; border-radius: 8px; overflow: hidden; text-decoration: none; color: black; }
+       .video-card img { width: 100%; height: 180px; object-fit: cover; }
+       .video-card h3 { padding: 0 15px; }
+    </style>
+</head>
+<body>
+    <h1>视频列表</h1>
+    <div id="video-grid"><p>加载中...</p></div>
+
+    <script>
+        const cdnBaseUrl = 'https://ruijie-video.cn/'; // 你的CDN域名
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const grid = document.getElementById('video-grid');
+            try {
+                const response = await fetch('/api/videos?action=list');
+                const videos = await response.json();
+                grid.innerHTML = ''; // 清空加载提示
+
+                videos.forEach(video => {
+                    const card = document.createElement('a');
+                    card.className = 'video-card';
+                    card.href = `player.html?id=${video.id}`;
+
+                    const coverUrl = cdnBaseUrl + video.cover_key;
+
+                    card.innerHTML = `
+                        <img src="${coverUrl}" alt="${video.title}">
+                        <h3>${video.title}</h3>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                grid.innerHTML = '<p>加载视频列表失败。</p>';
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
