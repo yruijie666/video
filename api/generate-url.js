@@ -1,8 +1,8 @@
-// 使用 'import' 语法导入腾讯云COS的SDK
-import COS from 'cos-nodejs-sdk-v5';
+// 1. ⚠️ 使用 CommonJS 语法导入腾讯云COS的SDK
+const COS = require('cos-nodejs-sdk-v5');
 
-// Vercel Serverless函数的标准入口
-export default function handler(req, res) {
+// 2. ⚠️ 使用 CommonJS 语法导出函数
+module.exports = function handler(req, res) {
 
   // 1. 初始化COS客户端
   // 注意：我们使用了更规范的环境变量名，确保你在Vercel网站上也是这样设置的
