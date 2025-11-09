@@ -1,59 +1,361 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-g">
-    <title>正在播放</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正在播放 - 视频标题</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        #player-container { max-width: 900px; margin: auto; }
-        video { width: 100%; border-radius: 8px; }
+        /* [全局样式 和 头部导航栏 CSS... 与上一版相同] */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans SC', sans-serif; background-color: #f0f2f5; color: #333; line-height: 1.6; }
+        .header { background-color: #ffffff; padding: 10px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        .header .logo { font-size: 24px; font-weight: 700; color: #2a7aff; text-decoration: none; margin-right: 30px; }
+        .header .search-bar { flex-grow: 1; max-width: 600px; position: relative; }
+        .header .search-bar input { width: 100%; padding: 8px 15px; border: 1px solid #e0e0e0; border-radius: 20px; outline: none; font-size: 1rem; background-color: #f7f7f7; }
+        .header .search-bar button { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 5px; color: #666; font-size: 1.1rem; }
+        .header .user-section { display: flex; align-items: center; margin-left: 30px; }
+        .header .user-section .avatar { width: 40px; height: 40px; border-radius: 50%; background-color: #ccc; margin-right: 10px; }
+        .header .user-section span { font-weight: 500; color: #555; }
+
+        /* [播放器主体、标题、统计、播放器、描述 CSS... 与上一版相同] */
+        .main-player-content { max-width: 1200px; margin: 25px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+        #player-container { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; overflow: hidden; }
+        #video-title { font-size: 1.8rem; font-weight: 700; color: #222; margin-bottom: 10px; }
+        #video-stats { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; font-size: 0.9rem; color: #888; margin-bottom: 20px; padding: 0 5px; }
+        #video-stats .views { font-weight: 500; color: #555; }
+        #video-wrapper { position: relative; width: 100%; aspect-ratio: 16 / 9; background-color: #000; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+        #video-wrapper video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; }
+        #video-wrapper .loading-text { display: flex; justify-content: center; align-items: center; height: 100%; color: #999; font-size: 1.2rem; }
+        #video-description { font-size: 1rem; line-height: 1.7; color: #555; padding: 0 5px; border-bottom: 1px solid #f0f0f0; padding-bottom: 20px; margin-bottom: 20px; }
+
+        /* [标签区域 CSS... 与上一版相同] */
+        #tags-section { padding: 0 5px; margin-bottom: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 20px; }
+        #tags-section h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 15px; }
+        #tags-container { display: flex; flex-wrap: wrap; gap: 10px; }
+        #tags-container .tag { background-color: #eef5ff; color: #2a7aff; padding: 5px 12px; border-radius: 15px; font-size: 0.9rem; font-weight: 500; }
+        #tags-container .no-data { color: #888; font-size: 0.9rem; }
+
+        /* [评论区域 CSS... 与上一版相同] */
+        #comments-section { padding: 0 5px; }
+        #comments-section h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; }
+        #comments-list { display: flex; flex-direction: column; gap: 20px; }
+        .comment-item { display: flex; gap: 12px; }
+        .comment-item .avatar { width: 36px; height: 36px; border-radius: 50%; background-color: #ccc; flex-shrink: 0; }
+        .comment-item .comment-content { flex-grow: 1; }
+        .comment-item .comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.9rem; }
+        .comment-item .comment-header .author { font-weight: 700; color: #555; }
+        .comment-item .comment-header .timestamp { color: #999; }
+        .comment-item .comment-body { font-size: 1rem; line-height: 1.6; color: #333; }
+        #comments-list .no-data { color: #888; font-size: 0.9rem; margin-left: 48px; }
+
+        /* --- (新增) 评论表单 CSS (要求1) --- */
+        #comment-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px; /* 在 h2 之后 */
+            margin-bottom: 25px; /* 在 list 之前 */
+        }
+        #comment-form .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #ccc;
+            flex-shrink: 0;
+            margin-top: 5px;
+        }
+        #comment-form .input-group {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #comment-form textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            outline: none;
+            font-size: 1rem;
+            font-family: 'Noto Sans SC', sans-serif;
+            resize: vertical; /* 允许垂直调整大小 */
+            min-height: 60px;
+            transition: border-color 0.2s ease;
+        }
+        #comment-form textarea:focus {
+            border-color: #2a7aff;
+        }
+        #comment-form button {
+            align-self: flex-end; /* 按钮靠右 */
+            padding: 8px 18px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #ffffff;
+            background-color: #2a7aff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        #comment-form button:hover {
+            background-color: #0056e0;
+        }
+        #comment-form button:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+        }
+
+        /* [响应式 CSS... 与上一版相同] */
+        @media (max-width: 768px) {
+            .header { flex-wrap: wrap; justify-content: center; }
+            .header .logo { margin-bottom: 10px; }
+            .header .search-bar { order: 3; margin-top: 10px; max-width: 100%; }
+            .header .user-section { margin-left: 0; }
+            #video-title { font-size: 1.5rem; }
+        }
     </style>
 </head>
 <body>
-    <div id="player-container">
-        <h1 id="video-title">加载中...</h1>
-        <div id="video-wrapper"></div>
-        <p id="video-description"></p>
-    </div>
+    <header class="header">
+        <a href="index.html" class="logo">我的视频</a>
+        <div class="search-bar">
+            <input type="text" placeholder="搜索视频..." />
+            <button aria-label="搜索"><i class="fas fa-search"></i></button>
+        </div>
+        <div class="user-section">
+            <div class="avatar"></div>
+            <span>游客</span>
+        </div>
+    </header>
+
+    <main class="main-player-content">
+        <div id="player-container">
+            <h1 id="video-title">加载中...</h1>
+            <div id="video-stats">
+                <span class="views">-- 观看</span>
+                <span class="date">----/--/--</span>
+            </div>
+            
+            <!-- (修改) (要求2) 移除了 "正在获取播放地址..." 文本 -->
+            <div id="video-wrapper">
+                <div class="loading-text">加载中...</div>
+            </div> 
+            
+            <p id="video-description">...</p>
+
+            <section id="tags-section">
+                <h2>标签</h2>
+                <div id="tags-container">
+                    <span class="no-data">加载中...</span>
+                </div>
+            </section>
+            
+            <section id="comments-section">
+                <h2>评论</h2>
+                
+                <!-- (新增) (要求1) 评论表单 -->
+                <form id="comment-form">
+                    <div class="avatar"></div> <!-- 游客头像 -->
+                    <div class="input-group">
+                        <textarea id="comment-input" placeholder="请在此输入您的评论..." required minlength="1"></textarea>
+                        <button type="submit" id="comment-submit-btn">发布评论</button>
+                    </div>
+                </form>
+
+                <div id="comments-list">
+                    <!-- 评论将动态插入此处 -->
+                </div>
+            </section>
+        </div>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
             const videoId = params.get('id');
+            
+            // --- 获取页面元素 ---
+            const titleEl = document.getElementById('video-title');
+            const statsEl = document.getElementById('video-stats');
+            const descEl = document.getElementById('video-description');
+            const wrapperEl = document.getElementById('video-wrapper');
+            const tagsContainer = document.getElementById('tags-container');
+            const commentsList = document.getElementById('comments-list');
+            
+            // (要求1) 评论表单元素
+            const commentForm = document.getElementById('comment-form');
+            const commentInput = document.getElementById('comment-input');
+            const commentSubmitBtn = document.getElementById('comment-submit-btn');
 
             if (!videoId) {
-                document.getElementById('video-title').innerText = '未找到视频';
+                // ... (错误处理与上一版相同) ...
+                titleEl.innerText = '未找到视频 ID';
+                descEl.innerText = '请通过视频列表选择一个视频进行播放。';
+                wrapperEl.innerHTML = '<p class="loading-text" style="color:#e74c3c;">无效的请求</p>';
+                tagsContainer.innerHTML = '<span class="no-data"></span>';
+                commentForm.style.display = 'none'; // 隐藏评论表单
+                commentsList.innerHTML = '<span class="no-data"></span>';
                 return;
             }
 
+            // --- (修改) (要求2) 核心数据获取 ---
+            // 现在只调用一次 API
             try {
-                // 获取所有视频信息以找到对应的key
-                const listResponse = await fetch('/api/videos?action=list');
-                const videos = await listResponse.json();
-                const video = videos.find(v => v.id === videoId);
+                const detailsResponse = await fetch(`/api/get_video_details?id=${videoId}`);
+                
+                if (!detailsResponse.ok) {
+                    if (detailsResponse.status === 404) throw new Error('视频不存在 (404)');
+                    throw new Error('无法获取视频详情');
+                }
+                
+                const details = await detailsResponse.json();
 
-                if (!video) {
-                    document.getElementById('video-title').innerText = '视频不存在';
+                // 1. 填充标题、统计、描述
+                titleEl.innerText = details.title;
+                statsEl.innerHTML = `
+                    <span class="views">${details.views_count} 观看</span>
+                    <span class="date">${details.upload_date}</span>
+                `;
+                descEl.innerText = details.description || '暂无描述。';
+                document.title = `正在播放 - ${details.title}`;
+
+                // 2. (修改) (要求2) 立即创建 video 元素
+                // (不再需要第二次 fetch)
+                const videoElement = document.createElement('video');
+                videoElement.src = details.signed_play_url; // 使用 API 返回的签名 URL
+                videoElement.controls = true;
+                videoElement.autoplay = true;
+                videoElement.playsInline = true;
+                videoElement.preload = "auto";
+                
+                wrapperEl.innerHTML = ''; // 清空 "加载中..."
+                wrapperEl.appendChild(videoElement);
+                
+                // 3. 渲染标签
+                renderTags(details.tags);
+                
+                // 4. 渲染评论
+                renderComments(details.comments);
+
+            } catch (error) {
+                // ... (错误处理与上一版相同) ...
+                console.error('加载视频详情错误:', error);
+                titleEl.innerText = '加载视频失败';
+                descEl.innerText = '很抱歉，加载视频时遇到错误。';
+                if (error.message.includes('404')) {
+                    descEl.innerText = '您请求的视频可能已被删除或从未存在。';
+                }
+                wrapperEl.innerHTML = '<p class="loading-text" style="color:#e74c3c;">无法加载视频源。</p>';
+                tagsContainer.innerHTML = '<span class="no-data"></span>';
+                commentForm.style.display = 'none'; // 隐藏评论表单
+                commentsList.innerHTML = '<span class="no-data"></span>';
+            }
+
+            // --- (新增) (要求1) 评论表单提交事件 ---
+            commentForm.addEventListener('submit', async (event) => {
+                event.preventDefault(); // 阻止表单刷新页面
+                const content = commentInput.value.trim();
+
+                if (!content) {
+                    alert('评论内容不能为空！');
                     return;
                 }
 
-                document.getElementById('video-title').innerText = video.title;
-                document.getElementById('video-description').innerText = video.description;
+                commentSubmitBtn.disabled = true; // 禁用按钮，防止重复提交
+                commentSubmitBtn.innerText = '发布中...';
 
-                // 获取带签名的播放URL
-                const urlResponse = await fetch(`/api/videos?action=get-play-url&key=${video.video_key}`);
-                const { url } = await urlResponse.json();
+                try {
+                    const response = await fetch('/api/add_comment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            videoId: Number(videoId), 
+                            content: content 
+                        })
+                    });
 
-                const videoElement = document.createElement('video');
-                videoElement.src = url;
-                videoElement.controls = true;
-                document.getElementById('video-wrapper').appendChild(videoElement);
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.error || '发布失败');
+                    }
 
-            } catch (error) {
-                document.getElementById('video-title').innerText = '加载视频失败';
-                console.error(error);
+                    const newComment = await response.json();
+                    
+                    // (要求1) 实时渲染新评论
+                    renderNewComment(newComment); // 调用辅助函数
+                    commentInput.value = ''; // 清空输入框
+
+                } catch (err) {
+                    console.error('发布评论失败:', err);
+                    alert('评论发布失败：' + err.message);
+                } finally {
+                    commentSubmitBtn.disabled = false; // 恢复按钮
+                    commentSubmitBtn.innerText = '发布评论';
+                }
+            });
+
+            // --- 辅助函数 ---
+            function renderTags(tags) {
+                tagsContainer.innerHTML = '';
+                if (tags && tags.length > 0) {
+                    tags.forEach(tag => {
+                        const tagEl = document.createElement('span');
+                        tagEl.className = 'tag';
+                        tagEl.innerText = tag.tag_name;
+                        tagsContainer.appendChild(tagEl);
+                    });
+                } else {
+                    tagsContainer.innerHTML = '<span class="no-data">暂无标签</span>';
+                }
             }
+
+            function renderComments(comments) {
+                commentsList.innerHTML = '';
+                if (comments && comments.length > 0) {
+                    comments.forEach(comment => {
+                        const commentEl = createCommentElement(comment);
+                        commentsList.appendChild(commentEl);
+                    });
+                } else {
+                    commentsList.innerHTML = '<span class="no-data" style="margin-left: 48px;" id="no-comment-placeholder">暂无评论</span>';
+                }
+            }
+
+            // (要求1) 辅助函数：渲染单条新评论 (插在最前面)
+            function renderNewComment(comment) {
+                // 移除 "暂无评论" 的提示
+                const noCommentEl = document.getElementById('no-comment-placeholder');
+                if (noCommentEl) {
+                    noCommentEl.remove();
+                }
+
+                const commentEl = createCommentElement(comment);
+                // (要求1) prepend 使新评论显示在最上方
+                commentsList.prepend(commentEl); 
+            }
+
+            // (要求1) 辅助函数：创建评论 DOM 元素
+            function createCommentElement(comment) {
+                const commentEl = document.createElement('div');
+                commentEl.className = 'comment-item';
+                commentEl.innerHTML = `
+                    <div class="avatar"></div>
+                    <div class="comment-content">
+                        <div class="comment-header">
+                            <span class="author">游客</span>
+                            <span class="timestamp">${comment.created_at}</span>
+                        </div>
+                        <div class="comment-body">
+                            ${/* (安全处理) 简单转义 HTML 标签，防止 XSS */ ''}
+                            ${comment.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                        </div>
+                    </div>
+                `;
+                return commentEl;
+            }
+
         });
     </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </body>
 </html>
