@@ -7,7 +7,6 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📺</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* ... (全局, 头部, 主体等样式保持不变) ... */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Noto Sans SC', sans-serif; background-color: #f0f2f5; color: #333; line-height: 1.6; }
         .header { background-color: #ffffff; padding: 10px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
@@ -23,59 +22,15 @@
         #video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
         .video-card { background: #ffffff; border-radius: 10px; overflow: hidden; text-decoration: none; color: black; box-shadow: 0 3px 10px rgba(0,0,0,0.08); transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; flex-direction: column; }
         .video-card:hover { transform: translateY(-5px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
-
-        /* --- (最终修正) --- */
-        /* 1. 删除旧的 .video-card img 规则 */
-        
-        /* 2. 创建 .video-cover 规则 */
-        .video-cover {
-            width: 100%;
-            aspect-ratio: 16 / 9; /* 强制 16:9 比例 */
-            background-color: #e0e0e0; /* 占位符颜色 */
-
-            /* 核心：这三行 = <img> 的 object-fit: cover */
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            
-            /* (可选) 过渡效果，防止 URL 真的有 `onerror` 时的闪烁 */
-            transition: background-image 0.2s ease-in-out;
-        }
-
+        .video-cover { width: 100%; aspect-ratio: 16 / 9; background-color: #e0e0e0; background-size: cover; background-position: center; background-repeat: no-repeat; }
         .video-card .video-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        
-        .video-card h3 {
-            font-size: 1rem;
-            font-weight: 500;
-            color: #222;
-            margin-bottom: 8px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            line-clamp: 2; 
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            /* (保留方案) 锁死高度，防止字体 CLS */
-            line-height: 1.3;
-            height: 2.6em; /* 1rem * 1.3 * 2 = 2.6em */
-        }
-        
+        .video-card h3 { font-size: 1rem; font-weight: 500; color: #222; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; height: 2.6em; }
         .video-card .video-stats { font-size: 0.85rem; color: #888; display: flex; justify-content: space-between; flex-wrap: wrap; }
         #video-grid p { grid-column: 1 / -1; text-align: center; padding: 50px; font-size: 1.1rem; color: #666; }
         #video-grid p.error { color: #d9534f; }
-        
-        @media (max-width: 768px) {
-            .header { flex-wrap: wrap; justify-content: center; }
-            .header .logo { margin-bottom: 10px; }
-            .header .search-form { order: 3; margin-top: 10px; max-width: 100%; }
-            .header .user-section { margin-left: 0; }
-            h1 { font-size: 1.8rem; }
-            #video-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
-        }
     </style>
 </head>
 <body>
-    <!-- ... (HTML 结构保持不变) ... -->
     <header class="header">
         <a class="logo">我的视频</a>
         <form class="search-form" id="search-form">
@@ -101,30 +56,31 @@
         const mainTitle = document.getElementById('main-title');
         const logo = document.querySelector('.logo');
 
-        /**
-         * (新增) 辅助函数：转义 HTML 字符串，防止 XSS 攻击
-         * 比如 video.title 包含 <script> 标签
-         */
         function escapeHTML(str) {
             if (!str) return '';
-            return str.replace(/&/g, '&amp;')
-                      .replace(/</g, '&lt;')
-                      .replace(/>/g, '&gt;')
-                      .replace(/"/g, '&quot;')
-                      .replace(/'/g, '&#039;');
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
 
         async function fetchVideos(apiUrl) {
-            // ... (此函数保持不变) ...
             grid.innerHTML = '<p>视频加载中...</p>';
             try {
-                const response = await fetch(apiUrl);
-                if (!response.ok) throw new Error(`HTTP 错误! 状态: ${response.status}`);
-                
-                const videos = await response.json();
+                // (最终方案) 1. 并行发起两个请求
+                const [videosResponse, countsResponse] = await Promise.all([
+                    fetch(apiUrl),
+                    fetch('/api/get_view_counts') // 获取全局播放量
+                ]);
+
+                if (!videosResponse.ok) throw new Error(`视频列表加载失败: ${videosResponse.status}`);
+                if (!countsResponse.ok) throw new Error(`播放量加载失败: ${countsResponse.status}`);
+
+                const videos = await videosResponse.json();
+                const viewCounts = await countsResponse.json(); // 得到 { "1": 100, "2": 50, ... }
+
                 if (videos.error) throw new Error(videos.details || videos.error);
+                if (viewCounts.error) throw new Error(viewCounts.details || viewCounts.error);
                 
-                renderVideos(videos);
+                // (最终方案) 2. 将播放量传入渲染函数
+                renderVideos(videos, viewCounts);
 
             } catch (error) {
                 grid.innerHTML = '<p class="error">加载视频列表失败，请稍后重试。</p>';
@@ -132,7 +88,7 @@
             }
         }
 
-        function renderVideos(videos) {
+        function renderVideos(videos, viewCounts) {
             if (videos.length === 0) {
                 grid.innerHTML = '<p>没有找到符合条件的视频。</p>';
                 return;
@@ -140,21 +96,19 @@
 
             let cardsHTML = videos.map(video => {
                 const coverUrl = `${cdnDomain}/${video.cover_key}`;
-                // (重要) 转义标题和封面 URL (以防万一)
                 const safeTitle = escapeHTML(video.title);
-                const safeCoverUrl = coverUrl.replace(/'/g, "%27"); // 简单转义 CSS 中的单引号
+                const safeCoverUrl = coverUrl.replace(/'/g, "%27");
 
-                // --- (最终修正) ---
-                // 1. 放弃 <img> 标签
-                // 2. 使用 <div class="video-cover">
-                // 3. 将 URL 放入内联 style="background-image: ..."
+                // (最终方案) 3. 在前端合并数据
+                const count = viewCounts[video.id] || 0; // 从字典中获取播放量
+
                 return `
                     <a class="video-card" href="player.html?id=${video.id}" data-video-id="${video.id}">
                         <div class="video-cover" style="background-image: url('${safeCoverUrl}')"></div>
                         <div class="video-info">
                             <h3>${safeTitle}</h3>
                             <div class="video-stats">
-                                <span class="views">${video.views_count || 0} 观看</span>
+                                <span class="views">${count} 观看</span>
                                 <span class="date">${video.upload_date}</span>
                             </div>
                         </div>
@@ -170,7 +124,6 @@
         }
 
         function handleCardClick(event) {
-            // ... (此函数保持不变) ...
             event.preventDefault(); 
             const card = event.currentTarget;
             const videoId = card.dataset.videoId;
@@ -190,7 +143,6 @@
         }
 
         function handleSearch(event) {
-            // ... (此函数保持不变) ...
             event.preventDefault();
             const searchTerm = searchInput.value.trim();
             if (searchTerm) {
@@ -203,7 +155,6 @@
         }
         
         function handleLogoClick(event) {
-            // ... (此函数保持不变) ...
             event.preventDefault();
             searchInput.value = '';
             mainTitle.innerText = '精选视频';
@@ -214,15 +165,9 @@
         logo.addEventListener('click', handleLogoClick);
 
         window.addEventListener('pageshow', (event) => {
-            // ... (此函数保持不变) ...
-            if (event.persisted) {
-                console.log('从 bfcache 恢复');
-                return; 
-            }
-            console.log('新加载页面');
+            if (event.persisted) { return; }
             const params = new URLSearchParams(window.location.search);
             const urlSearchTerm = params.get('search');
-            
             if (urlSearchTerm) {
                 searchInput.value = urlSearchTerm;
                 mainTitle.innerText = `搜索: "${urlSearchTerm}"`;
@@ -232,7 +177,6 @@
             }
         });
     </script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </body>
 </html>
