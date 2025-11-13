@@ -65,10 +65,9 @@ module.exports = async (req, res) => {
             `;
         }
         
-        // (修正4) 添加缓存头。
-        // 这会告诉 Vercel 的 CDN 缓存这个 API 结果 1200 秒。
-        // 当用户按 "返回" 按钮时，浏览器可以立即使用缓存，而无需重新查询数据库。
-        res.setHeader('Cache-Control', 'public, s-maxage=1200, stale-while-revalidate=30');
+        // (修正2) 统一缓存时间为 5 分钟 (300秒)
+        // 解决播放量和评论的数据不一致问题
+        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60');
 
         res.status(200).json(result);
 

@@ -1,8 +1,8 @@
 // 作用：获取单个视频的详细信息
-// (修改) (要求 2+3) 现在在后端直接生成 CDN 签名，解决瀑布问题
+// (已集成 CDN 签名)
 
 const { neon } = require('@neondatabase/serverless');
-const crypto = require('crypto'); // (要求 2+3) 导入 crypto
+const crypto = require('crypto');
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -11,8 +11,7 @@ if (!connectionString) {
 }
 
 /**
- * (要求 2+3) 用于生成 CDN 签名的辅助函数
- * (此逻辑从 cdn.js 复制而来)
+ * 用于生成 CDN 签名的辅助函数
  */
 function getSignedCdnUrl(videoKey) {
     const CDN_AUTH_KEY = process.env.CDN_AUTH_KEY; 
@@ -20,7 +19,6 @@ function getSignedCdnUrl(videoKey) {
 
     if (!CDN_AUTH_KEY || !CDN_DOMAIN) {
         console.error('环境变量 CDN_AUTH_KEY 或 CDN_DOMAIN 未设置');
-        // 如果配置缺失，返回 null，前端将显示错误
         return null;
     }
     
@@ -61,7 +59,6 @@ module.exports = async (req, res) => {
 
     try {
         // --- 1. 获取数据库数据 ---
-        // (此 SQL 查询与上一版相同)
         const result = await sql`
             SELECT 
                 v.id, v.title, v.description, v.video_key, v.views_count,
@@ -90,21 +87,20 @@ module.exports = async (req, res) => {
         
         const videoDetails = result[0];
 
-        // --- 2. (要求 2+3) 在服务器端生成签名 URL ---
+        // --- 2. 在服务器端生成签名 URL ---
         const signedPlayUrl = getSignedCdnUrl(videoDetails.video_key);
         
         if (!signedPlayUrl) {
-            // 如果 CDN 环境变量缺失，返回 500
             return res.status(500).json({ error: '服务器 CDN 配置错误' });
         }
 
         // --- 3. 将 URL 添加到响应中 ---
         videoDetails.signed_play_url = signedPlayUrl;
 
-        // 设置缓存 (这会缓存数据库结果 + 签名 URL)
-        res.setHeader('Cache-Control', 'public, s-maxage=1200, stale-while-revalidate=30');
+        // (修正2) 统一缓存时间为 5 分钟 (300秒)
+        // 解决播放量和评论的数据不一致问题
+        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60');
 
-        // (修改) 返回包含 signed_play_url 的完整对象
         res.status(200).json(videoDetails);
 
     } catch (error) {

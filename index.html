@@ -4,191 +4,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的视频网站 - 首页</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📺</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* [CSS 样式表与之前相同...] */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-        .header {
-            background-color: #ffffff;
-            padding: 10px 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-        .header .logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: #2a7aff;
-            text-decoration: none;
-            margin-right: 30px;
-            cursor: pointer;
-        }
-        .header .search-form {
-            flex-grow: 1;
-            max-width: 600px;
-            position: relative;
-            display: flex;
-        }
-        .header .search-form input {
+        /* ... (全局, 头部, 主体等样式保持不变) ... */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans SC', sans-serif; background-color: #f0f2f5; color: #333; line-height: 1.6; }
+        .header { background-color: #ffffff; padding: 10px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        .header .logo { font-size: 24px; font-weight: 700; color: #2a7aff; text-decoration: none; margin-right: 30px; cursor: pointer; }
+        .header .search-form { flex-grow: 1; max-width: 600px; position: relative; display: flex; }
+        .header .search-form input { width: 100%; padding: 8px 15px; border: 1px solid #e0e0e0; border-radius: 20px; outline: none; font-size: 1rem; background-color: #f7f7f7; }
+        .header .search-form button { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 5px; color: #666; font-size: 1.1rem; }
+        .header .user-section { display: flex; align-items: center; margin-left: 30px; }
+        .header .user-section .avatar { width: 40px; height: 40px; border-radius: 50%; background-color: #ccc; margin-right: 10px; }
+        .header .user-section span { font-weight: 500; color: #555; }
+        .main-content { max-width: 1280px; margin: 25px auto; padding: 0 20px; }
+        h1 { font-size: 2.2rem; font-weight: 700; color: #222; margin-bottom: 30px; text-align: center; }
+        #video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .video-card { background: #ffffff; border-radius: 10px; overflow: hidden; text-decoration: none; color: black; box-shadow: 0 3px 10px rgba(0,0,0,0.08); transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; flex-direction: column; }
+        .video-card:hover { transform: translateY(-5px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+
+        /* --- (最终修正) --- */
+        /* 1. 删除旧的 .video-card img 规则 */
+        
+        /* 2. 创建 .video-cover 规则 */
+        .video-cover {
             width: 100%;
-            padding: 8px 15px;
-            border: 1px solid #e0e0e0;
-            border-radius: 20px;
-            outline: none;
-            font-size: 1rem;
-            background-color: #f7f7f7;
+            aspect-ratio: 16 / 9; /* 强制 16:9 比例 */
+            background-color: #e0e0e0; /* 占位符颜色 */
+
+            /* 核心：这三行 = <img> 的 object-fit: cover */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            
+            /* (可选) 过渡效果，防止 URL 真的有 `onerror` 时的闪烁 */
+            transition: background-image 0.2s ease-in-out;
         }
-        .header .search-form button {
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 5px;
-            color: #666;
-            font-size: 1.1rem;
-        }
-        .header .user-section {
-            display: flex;
-            align-items: center;
-            margin-left: 30px;
-        }
-        .header .user-section .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: #ccc;
-            margin-right: 10px;
-        }
-        .header .user-section span {
-            font-weight: 500;
-            color: #555;
-        }
-        .main-content {
-            max-width: 1280px;
-            margin: 25px auto;
-            padding: 0 20px;
-        }
-        h1 {
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: #222;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        #video-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
-        }
-        .video-card {
-            background: #ffffff;
-            border-radius: 10px;
-            overflow: hidden;
-            text-decoration: none;
-            color: black;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            display: flex;
-            flex-direction: column;
-        }
-        .video-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
-        }
-        .video-card img {
-            width: 100%;
-            display: block;
-            aspect-ratio: 16 / 9;
-            object-fit: cover;
-            background-color: #e0e0e0;
-        }
-        .video-card .video-info {
-            padding: 15px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
+
+        .video-card .video-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        
         .video-card h3 {
             font-size: 1rem;
             font-weight: 500;
             color: #222;
             margin-bottom: 8px;
             display: -webkit-box;
-            /* (修正3) 添加标准属性以消除警告 */
             -webkit-line-clamp: 2;
             line-clamp: 2; 
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-        .video-card .video-stats {
-            font-size: 0.85rem;
-            color: #888;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
+            /* (保留方案) 锁死高度，防止字体 CLS */
+            line-height: 1.3;
+            height: 2.6em; /* 1rem * 1.3 * 2 = 2.6em */
         }
         
-        /* * (修正3) 移除了 .views 和 .date 的空规则 
-         */
-
-        #video-grid p {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 50px;
-            font-size: 1.1rem;
-            color: #666;
-        }
-        #video-grid p.error {
-            color: #d9534f;
-        }
-
+        .video-card .video-stats { font-size: 0.85rem; color: #888; display: flex; justify-content: space-between; flex-wrap: wrap; }
+        #video-grid p { grid-column: 1 / -1; text-align: center; padding: 50px; font-size: 1.1rem; color: #666; }
+        #video-grid p.error { color: #d9534f; }
+        
         @media (max-width: 768px) {
-            .header {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .header .logo {
-                margin-bottom: 10px;
-            }
-            .header .search-form {
-                order: 3;
-                margin-top: 10px;
-                max-width: 100%;
-            }
-            .header .user-section {
-                margin-left: 0;
-            }
-            h1 {
-                font-size: 1.8rem;
-            }
-            #video-grid {
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            }
+            .header { flex-wrap: wrap; justify-content: center; }
+            .header .logo { margin-bottom: 10px; }
+            .header .search-form { order: 3; margin-top: 10px; max-width: 100%; }
+            .header .user-section { margin-left: 0; }
+            h1 { font-size: 1.8rem; }
+            #video-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
         }
     </style>
 </head>
 <body>
+    <!-- ... (HTML 结构保持不变) ... -->
     <header class="header">
         <a class="logo">我的视频</a>
         <form class="search-form" id="search-form">
@@ -207,7 +94,6 @@
     </main>
 
     <script>
-        // [JavaScript 部分与之前相同，此处省略...]
         const cdnDomain = 'https://cdn.ruijie-video.cn';
         const grid = document.getElementById('video-grid');
         const searchForm = document.getElementById('search-form');
@@ -215,18 +101,31 @@
         const mainTitle = document.getElementById('main-title');
         const logo = document.querySelector('.logo');
 
+        /**
+         * (新增) 辅助函数：转义 HTML 字符串，防止 XSS 攻击
+         * 比如 video.title 包含 <script> 标签
+         */
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+        }
+
         async function fetchVideos(apiUrl) {
+            // ... (此函数保持不变) ...
             grid.innerHTML = '<p>视频加载中...</p>';
             try {
                 const response = await fetch(apiUrl);
-                if (!response.ok) {
-                    throw new Error(`HTTP 错误! 状态: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP 错误! 状态: ${response.status}`);
+                
                 const videos = await response.json();
-                if (videos.error) {
-                    throw new Error(videos.details || videos.error);
-                }
+                if (videos.error) throw new Error(videos.details || videos.error);
+                
                 renderVideos(videos);
+
             } catch (error) {
                 grid.innerHTML = '<p class="error">加载视频列表失败，请稍后重试。</p>';
                 console.error('加载视频列表错误:', error);
@@ -234,48 +133,64 @@
         }
 
         function renderVideos(videos) {
-            grid.innerHTML = '';
             if (videos.length === 0) {
                 grid.innerHTML = '<p>没有找到符合条件的视频。</p>';
                 return;
             }
-            videos.forEach(video => {
-                const card = document.createElement('a');
-                card.className = 'video-card';
-                card.href = `player.html?id=${video.id}`;
-                card.dataset.videoId = video.id;
+
+            let cardsHTML = videos.map(video => {
                 const coverUrl = `${cdnDomain}/${video.cover_key}`;
-                card.innerHTML = `
-                    <img src="${coverUrl}" alt="${video.title}" loading="lazy" onerror="this.src='https://placehold.co/600x400/e0e0e0/999?text=Cover+Error'">
-                    <div class="video-info">
-                        <h3>${video.title}</h3>
-                        <div class="video-stats">
-                            <span class="views">${video.views_count || 0} 观看</span>
-                            <span class="date">${video.upload_date}</span>
+                // (重要) 转义标题和封面 URL (以防万一)
+                const safeTitle = escapeHTML(video.title);
+                const safeCoverUrl = coverUrl.replace(/'/g, "%27"); // 简单转义 CSS 中的单引号
+
+                // --- (最终修正) ---
+                // 1. 放弃 <img> 标签
+                // 2. 使用 <div class="video-cover">
+                // 3. 将 URL 放入内联 style="background-image: ..."
+                return `
+                    <a class="video-card" href="player.html?id=${video.id}" data-video-id="${video.id}">
+                        <div class="video-cover" style="background-image: url('${safeCoverUrl}')"></div>
+                        <div class="video-info">
+                            <h3>${safeTitle}</h3>
+                            <div class="video-stats">
+                                <span class="views">${video.views_count || 0} 观看</span>
+                                <span class="date">${video.upload_date}</span>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 `;
+            }).join(''); 
+
+            grid.innerHTML = cardsHTML;
+
+            grid.querySelectorAll('.video-card').forEach(card => {
                 card.addEventListener('click', handleCardClick);
-                grid.appendChild(card);
             });
         }
 
         function handleCardClick(event) {
+            // ... (此函数保持不变) ...
             event.preventDefault(); 
             const card = event.currentTarget;
             const videoId = card.dataset.videoId;
             const targetUrl = card.href;
             if (!videoId) return;
             const updateUrl = `/api/update_view?id=${videoId}`;
-            if (navigator.sendBeacon) {
-                navigator.sendBeacon(updateUrl);
-            } else {
-                fetch(updateUrl, { method: 'POST', keepalive: true }).catch(err => console.error('更新播放量失败:', err));
+            try {
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon(updateUrl);
+                } else {
+                    fetch(updateUrl, { method: 'POST', keepalive: true }).catch(err => console.error('更新播放量失败:', err));
+                }
+            } catch (e) {
+                console.error("sendBeacon 失败:", e);
             }
             window.location.href = targetUrl;
         }
 
         function handleSearch(event) {
+            // ... (此函数保持不变) ...
             event.preventDefault();
             const searchTerm = searchInput.value.trim();
             if (searchTerm) {
@@ -288,6 +203,7 @@
         }
         
         function handleLogoClick(event) {
+            // ... (此函数保持不变) ...
             event.preventDefault();
             searchInput.value = '';
             mainTitle.innerText = '精选视频';
@@ -297,12 +213,26 @@
         searchForm.addEventListener('submit', handleSearch);
         logo.addEventListener('click', handleLogoClick);
 
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchVideos('/api/connect_PgSql');
+        window.addEventListener('pageshow', (event) => {
+            // ... (此函数保持不变) ...
+            if (event.persisted) {
+                console.log('从 bfcache 恢复');
+                return; 
+            }
+            console.log('新加载页面');
+            const params = new URLSearchParams(window.location.search);
+            const urlSearchTerm = params.get('search');
+            
+            if (urlSearchTerm) {
+                searchInput.value = urlSearchTerm;
+                mainTitle.innerText = `搜索: "${urlSearchTerm}"`;
+                fetchVideos(`/api/connect_PgSql?search=${encodeURIComponent(urlSearchTerm)}`);
+            } else {
+                fetchVideos('/api/connect_PgSql');
+            }
         });
     </script>
     
-    <!-- (修正1+2) 修正了 httpsR:// 的拼写错误 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </body>
 </html>
