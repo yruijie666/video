@@ -7,6 +7,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📺</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* ... (所有 CSS 样式保持不变) ... */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Noto Sans SC', sans-serif; background-color: #f0f2f5; color: #333; line-height: 1.6; }
         .header { background-color: #ffffff; padding: 10px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
@@ -41,6 +42,7 @@
     </style>
 </head>
 <body>
+    <!-- ... (HTML 结构保持不变) ... -->
     <header class="header">
         <a href="index.html" class="logo">我的视频</a>
         <form class="search-form" id="search-form">
@@ -84,7 +86,7 @@
     </main>
 
     <script>
-        // --- 元素获取 ---
+        // --- (元素获取, 保持不变) ---
         const titleEl = document.getElementById('video-title');
         const statsViewsEl = document.getElementById('views-count');
         const statsDateEl = document.getElementById('upload-date');
@@ -101,11 +103,13 @@
         let currentVideoId = null;
 
         function escapeHTML(str) {
+            // ... (此函数保持不变) ...
             if (!str) return '';
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
 
         async function loadVideoData() {
+            // ... (此函数保持不变) ...
             try {
                 const params = new URLSearchParams(window.location.search);
                 const videoId = params.get('id');
@@ -115,10 +119,9 @@
                 }
                 currentVideoId = videoId;
 
-                // (最终方案) 1. 并行发起两个请求
                 const [detailsResponse, countsResponse] = await Promise.all([
                     fetch(`/api/get_video_details?id=${videoId}`),
-                    fetch('/api/get_view_counts') // 获取全局播放量
+                    fetch('/api/get_view_counts') 
                 ]);
 
                 if (!detailsResponse.ok) throw new Error('无法获取视频详情');
@@ -130,10 +133,8 @@
                 if (details.error) throw new Error(details.details || details.error);
                 if (viewCounts.error) throw new Error(viewCounts.details || viewCounts.error);
 
-                // (最终方案) 2. 在前端合并数据
                 const count = viewCounts[videoId] || 0;
 
-                // --- 渲染页面 ---
                 titleEl.innerText = details.title;
                 document.title = `正在播放 - ${details.title}`;
                 statsViewsEl.innerText = `${count} 观看`;
@@ -150,7 +151,7 @@
                 wrapperEl.appendChild(videoElement);
 
                 renderTags(details.tags);
-                renderComments(details.comments);
+                renderComments(details.comments); // <-- 调用修改后的函数
 
             } catch (error) {
                 titleEl.innerText = '加载视频失败';
@@ -160,20 +161,22 @@
         }
         
         function renderTags(tags) {
+            // ... (此函数保持不变) ...
             if (!tags || tags.length === 0) {
                 tagsContainer.innerHTML = '<p>暂无标签</p>';
                 return;
             }
             tagsContainer.innerHTML = tags.map(tag => {
                 const safeTag = escapeHTML(tag);
-                // (修正) 标签现在可以点击并跳转到首页的搜索
                 return `<a href="index.html?search=${encodeURIComponent(safeTag)}" class="tag">${safeTag}</a>`;
             }).join('');
         }
 
+        // --- (!! 已修正 !!) ---
         function renderComments(comments) {
             if (!comments || comments.length === 0) {
-                commentsList.innerHTML = '<p>还没有评论，快来抢沙发吧！</p>';
+                // (修复1) 给占位符添加一个唯一的 ID
+                commentsList.innerHTML = '<p id="no-comments-placeholder">还没有评论，快来抢沙发吧！</p>';
                 return;
             }
             commentsList.innerHTML = comments.map(comment => {
@@ -187,10 +190,18 @@
             }).join('');
         }
         
+        // --- (!! 已修正 !!) ---
         function renderNewComment(comment) {
-            if (commentsList.querySelector('p')) {
-                commentsList.innerHTML = ''; // 清空“暂无评论”
+            // (修复2) 不再使用 querySelector('p')
+            // 而是精确查找那个占位符 ID
+            const placeholder = document.getElementById('no-comments-placeholder');
+            
+            if (placeholder) {
+                // (修复3) 如果找到了占位符，就只删除它，而不是清空整个列表
+                placeholder.remove();
             }
+
+            // (不变) 正常创建新评论
             const commentHTML = `
                 <div class="comment" style="background-color: #f8f9ff;">
                     <span class="comment-date">${escapeHTML(comment.created_at)}</span>
@@ -198,19 +209,18 @@
                     <p class="comment-content">${escapeHTML(comment.content)}</p>
                 </div>
             `;
+            // (不变) 插入到顶部
             commentsList.insertAdjacentHTML('afterbegin', commentHTML);
         }
 
         async function handleCommentSubmit(event) {
+            // ... (此函数保持不变) ...
             event.preventDefault();
             if (!currentVideoId) return;
-
             const content = commentInput.value.trim();
             if (!content) return;
-
             commentSubmitBtn.disabled = true;
             commentSubmitBtn.innerText = '发布中...';
-
             try {
                 const response = await fetch('/api/add_comment', {
                     method: 'POST',
@@ -220,15 +230,10 @@
                         content: content
                     })
                 });
-
-                if (!response.ok) {
-                    throw new Error('发布失败');
-                }
-                
+                if (!response.ok) { throw new Error('发布失败'); }
                 const newComment = await response.json();
-                renderNewComment(newComment); // 即时显示新评论
-                commentInput.value = ''; // 清空输入框
-
+                renderNewComment(newComment); // <-- 调用修改后的函数
+                commentInput.value = ''; 
             } catch (error) {
                 alert('评论发布失败，请稍后重试。');
                 console.error('评论失败:', error);
@@ -239,6 +244,7 @@
         }
 
         function handleSearch(event) {
+            // ... (此函数保持不变) ...
             event.preventDefault();
             const searchTerm = searchInput.value.trim();
             if (searchTerm) {
@@ -246,6 +252,7 @@
             }
         }
         
+        // --- (事件监听, 保持不变) ---
         document.addEventListener('DOMContentLoaded', loadVideoData);
         commentForm.addEventListener('submit', handleCommentSubmit);
         searchForm.addEventListener('submit', handleSearch);
