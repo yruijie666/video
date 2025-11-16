@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频管理系统 (Management)</title>
+    <script src="https://cdn.jsdelivr.net/npm/cos-js-sdk-v5/dist/cos-js-sdk-v5.min.js"></script>
+    <style>
+        /* ... [所有 CSS 样式保持不变] ... */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft YaHei", Arial, sans-serif; }
+        body { background-color: #f5f7fa; color: #333; }
+        .layout-container { display: flex; width: 100vw; height: 100vh; }
+        .sidebar { width: 200px; background-color: #2c3e50; color: #fff; padding: 20px 0; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; }
+        .sidebar-title { text-align: center; font-size: 18px; font-weight: 600; padding: 0 20px 20px; border-bottom: 1px solid #34495e; margin-bottom: 20px; }
+        .nav-menu { list-style: none; }
+        .nav-item { margin: 10px 0; }
+        .nav-link { display: block; padding: 12px 25px; color: #ecf0f1; text-decoration: none; transition: all 0.3s; border-left: 3px solid transparent; }
+        .nav-link:hover, .nav-link.active { background-color: #34495e; border-left: 3px solid #3498db; padding-left: 30px; }
+        .nav-link i { margin-right: 8px; display: inline-block; width: 20px; text-align: center; }
+        .content-area { flex: 1; padding: 30px; overflow-y: auto; height: 100vh; }
+        .page-title { font-size: 24px; font-weight: 600; margin-bottom: 25px; color: #2c3e50; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; }
+        .card { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 25px; margin-bottom: 30px; }
+        .card-header { font-size: 18px; font-weight: 500; margin-bottom: 20px; color: #34495e; display: flex; align-items: center; }
+        .card-header i { margin-right: 10px; color: #3498db; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; margin-bottom: 8px; font-weight: 500; color: #4a4a4a; }
+        .form-control { width: 100%; padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; transition: border 0.3s; }
+        .form-control:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
+        .textarea-control { min-height: 100px; resize: vertical; }
+        .cover-preview { width: 160px; height: 90px; border: 1px dashed #ddd; border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; overflow: hidden; background-color: #f9fafb; }
+        .cover-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-placeholder { color: #999; font-size: 12px; text-align: center; line-height: 1.4; }
+        .btn-group { margin-top: 10px; }
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.3s; margin-right: 10px; }
+        .btn:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        .btn-primary { background-color: #3498db; color: #fff; }
+        .btn-primary:hover { background-color: #2980b9; }
+        .btn-danger { background-color: #e74c3c; color: #fff; }
+        .btn-danger:hover { background-color: #c0392b; }
+        .btn-secondary { background-color: #95a5a6; color: #fff; }
+        .btn-secondary:hover { background-color: #7f8c8d; }
+        .search-group { display: flex; gap: 10px; margin-bottom: 25px; }
+        .search-input { flex: 1; max-width: 400px; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .tag-input-container { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; transition: border 0.3s; cursor: text; }
+        .tag-input-container:focus-within { border-color: #3498db; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
+        .tag-chip { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 16px; background-color: #e0f2fe; color: #0c4a6e; font-size: 13px; font-weight: 500; }
+        .tag-remove-btn { margin-left: 6px; padding: 0; border: none; background: none; color: #0c4a6e; font-size: 14px; font-weight: bold; cursor: pointer; transition: color 0.2s; opacity: 0.7; }
+        .tag-remove-btn:hover { color: #e74c3c; opacity: 1; }
+        .tag-input-field { flex-grow: 1; border: none; outline: none; padding: 4px 0; font-size: 14px; min-width: 150px; background: transparent; }
+        .data-table-container { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        .data-table th, .data-table td { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; text-align: left; vertical-align: middle; }
+        .data-table th { background-color: #f9fafb; font-weight: 600; color: #4a4a4a; }
+        .data-table td { color: #555; }
+        
+        .data-table .cover-cell {
+            width: 80px;
+            height: 45px;
+            padding: 8px; /* 调整内边距以适应 */
+            background-color: #f4f5f7;
+            vertical-align: middle;
+        }
+        .data-table .cover-thumbnail {
+            width: 80px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 4px;
+            display: block; /* 确保图片充满单元格 */
+        }
+        
+        .data-table .tag-chip-container { display: flex; flex-wrap: wrap; gap: 4px; max-width: 300px; }
+        .data-table .tag-chip { padding: 3px 8px; font-size: 12px; }
+        .data-table .action-cell { white-space: nowrap; }
+        .btn-action-edit, .btn-action-delete { font-size: 14px; font-weight: 500; cursor: pointer; background: none; border: none; padding: 5px; margin-right: 10px; text-decoration: none; transition: color 0.2s; }
+        .btn-action-edit { color: #3498db; }
+        .btn-action-edit:hover { color: #2980b9; }
+        .btn-action-delete { color: #e74c3c; }
+        .btn-action-delete:hover { color: #c0392b; }
+        #upload-status-message, #manage-status-message { margin-top: 15px; font-size: 14px; padding: 10px; border-radius: 6px; display: none; }
+        #upload-status-message.success, #manage-status-message.success { background-color: #e6f7f1; color: #0d6a4f; display: block; }
+        #upload-status-message.error, #manage-status-message.error { background-color: #fef0f0; color: #d92d20; display: block; }
+        .progress-container { width: 100%; margin-bottom: 15px; }
+        .progress-label { font-size: 13px; color: #555; margin-bottom: 5px; }
+        .progress-bar-bg { width: 100%; height: 20px; background-color: #ecf0f1; border-radius: 10px; overflow: hidden; }
+        .progress-bar { height: 100%; width: 0%; background-color: #3498db; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; transition: width 0.3s ease; }
+        .pagination-container { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; }
+        .pagination-info { font-size: 14px; color: #555; }
+        .pagination-controls .btn { font-size: 13px; padding: 8px 15px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .modal-title { font-size: 20px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; }
+        .modal-body { margin-bottom: 25px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; }
+        #edit-modal .card-body { padding: 0; }
+        #edit-status-message { margin-top: 15px; font-size: 14px; padding: 10px; border-radius: 6px; display: none; }
+        #edit-status-message.success { background-color: #e6f7f1; color: #0d6a4f; display: block; }
+        #edit-status-message.error { background-color: #fef0f0; color: #d92d20; display: block; }
+    </style>
+</head>
+<body>
+    <div class="layout-container">
+        <div class="sidebar">
+            <div class="sidebar-title">视频管理中心</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#upload" class="nav-link active" data-tab="upload">
+                        <i>📤</i> 视频上传
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#management" class="nav-link" data-tab="management">
+                        <i>🗂️</i> 视频管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#comments" class="nav-link" data-tab="comments">
+                        <i>💬</i> 评论管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#tags" class="nav-link" data-tab="tags">
+                        <i>🏷️</i> 标签管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#stats" class="nav-link" data-tab="stats">
+                        <i>📊</i> 播放量统计
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="content-area">
+            
+            <div class="tab-panel active" id="upload-panel">
+                 <h1 class="page-title">视频上传</h1>
+                 <div class="card">
+                     <div class="card-header"><i>📤</i> 新视频上传</div>
+                     <div class="card-body">
+                         <div class="form-group">
+                             <label class="form-label" for="upload-title">视频标题 <span style="color: #e74c3c;">*</span></label>
+                             <input type="text" id="upload-title" class="form-control" placeholder="请输入视频标题（不超过255字）">
+                         </div>
+                         <div class="form-group">
+                             <label class="form-label" for="upload-description">视频描述</label>
+                             <textarea id="upload-description" class="form-control textarea-control" placeholder="请输入视频描述（可选）"></textarea>
+                         </div>
+                         <div class="form-group">
+                             <label class="form-label">视频标签 (Tags)</label>
+                             <div id="upload-tag-container" class="tag-input-container">
+                                 <input type="text" class="tag-input-field" placeholder="输入新标签后按 Enter 或 空格">
+                             </div>
+                         </div>
+                         <div class="form-group">
+                             <label class="form-label">封面上传 <span style="color: #e74c3c;">*</span></label>
+                             <div class="cover-preview" id="upload-cover-preview">
+                                 <div class="preview-placeholder">点击上传封面<br>支持JPG/PNG格式</div>
+                             </div>
+                             <input type="file" id="upload-cover-input" class="form-control" accept="image/jpeg,image/png">
+                         </div>
+                         <div class="form-group">
+                             <label class="form-label">视频上传 <span style="color: #e74c3c;">*</span></label>
+                             <input type="file" id="upload-video-input" class="form-control" accept="video/mp4">
+                             <div style="margin-top: 8px; font-size: 12px; color: #999;">支持MP4格式，建议文件大小不超过2GB</div>
+                         </div>
+                         <div id="cover-progress-container" class="progress-container" style="display: none;">
+                             <div class="progress-label">封面上传中...</div>
+                             <div class="progress-bar-bg"><div id="cover-progress-bar" class="progress-bar">0%</div></div>
+                         </div>
+                         <div id="video-progress-container" class="progress-container" style="display: none;">
+                             <div class="progress-label">视频上传中...</div>
+                             <div class="progress-bar-bg"><div id="video-progress-bar" class="progress-bar">0%</div></div>
+                         </div>
+                         <div class="btn-group">
+                             <button class="btn btn-primary" id="upload-submit-btn">提交上传</button>
+                             <button class="btn btn-secondary" id="upload-reset-btn">重置</button>
+                         </div>
+                         <div id="upload-status-message"></div>
+                     </div>
+                 </div>
+            </div>
+
+            <div class="tab-panel" id="management-panel">
+                <h1 class="page-title">视频管理</h1>
+                <div class="card">
+                    <div class="card-header">
+                        <i>🗂️</i> 视频列表与操作
+                    </div>
+                    <div class="card-body">
+                        <div class="search-group">
+                            <input type="text" id="manage-search-input" class="form-control search-input" placeholder="按视频标题或标签搜索...">
+                            <button class="btn btn-primary" id="manage-search-btn">搜索</button>
+                        </div>
+                        <div id="manage-status-message"></div>
+                        <div class="data-table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>封面</th>
+                                        <th>视频标题</th>
+                                        <th>标签</th>
+                                        <th>上传日期</th>
+                                        <th>播放量</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="manage-video-table-body">
+                                    </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination-container">
+                            <div class="pagination-info" id="manage-pagination-info">
+                                正在加载...
+                            </div>
+                            <div class="pagination-controls">
+                                <button class="btn btn-secondary" id="manage-prev-btn" disabled>上一页</button>
+                                <button class="btn btn-secondary" id="manage-next-btn" disabled>下一页</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-panel" id="comments-panel">
+                 <h1 class="page-title">评论管理</h1>
+                 <div class="card">
+                     <div class="card-header"><i>💬</i> 评论列表与审核</div>
+                     <div class="card-body"><p style="color: #7f8c8d; font-size: 15px;">评论管理功能正在开发中...</p></div>
+                 </div>
+            </div>
+            
+            <div class="tab-panel" id="tags-panel">
+                 <h1 class="page-title">标签管理</h1>
+                 <div class="card">
+                     <div class="card-header"><i>🏷️</i> 标签列表</div>
+                     <div class="card-body"><p style="color: #7f8c8d; font-size: 15px;">标签管理功能正在开发中...</p></div>
+                 </div>
+            </div>
+
+            <div class="tab-panel" id="stats-panel">
+                <h1 class="page-title">播放量统计</h1>
+                <div class="card">
+                    <div class="card-header"><i>📊</i> 数据仪表盘</div>
+                    <div class="card-body"><p style="color: #7f8c8d; font-size: 15px;">播放量统计功能正在开发中...</p></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal-content">
+            <h2 class="modal-title">编辑视频信息</h2>
+            <div class="modal-body card-body">
+                <input type="hidden" id="edit-video-id">
+                <input type="hidden" id="edit-old-cover-key">
+                <input type="hidden" id="edit-old-video-key">
+                <div class="form-group">
+                    <label class="form-label" for="edit-title">视频标题 <span style="color: #e74c3c;">*</span></label>
+                    <input type="text" id="edit-title" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit-description">视频描述</label>
+                    <textarea id="edit-description" class="form-control textarea-control"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">视频标签 (Tags)</label>
+                    <div id="edit-tag-container" class="tag-input-container">
+                        <input type="text" class="tag-input-field" placeholder="输入新标签后按 Enter 或 空格">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">封面 (不修改请留空)</label>
+                    <div class="cover-preview" id="edit-cover-preview"></div>
+                    <input type="file" id="edit-cover-input" class="form-control" accept="image/jpeg,image/png">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">视频 (不修改请留空)</label>
+                    <p id="edit-video-filename" style="font-size: 13px; color: #555; margin-bottom: 8px;"></p>
+                    <input type="file" id="edit-video-input" class="form-control" accept="video/mp4">
+                </div>
+                <div id="edit-cover-progress" class="progress-container" style="display: none;"></div>
+                <div id="edit-video-progress" class="progress-container" style="display: none;"></div>
+                <div id="edit-status-message"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="edit-cancel-btn">取消</button>
+                <button class="btn btn-primary" id="edit-save-btn">保存更改</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="delete-confirm-modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2 class="modal-title">确认删除</h2>
+            <div class="modal-body">
+                <p>你确定要删除视频 "<strong id="delete-video-title"></strong>" 吗？</p>
+                <p style="margin-top: 10px; font-size: 13px; color: #e74c3c;">此操作不可撤销。所有关联的评论都将被删除。</p>
+                <input type="hidden" id="delete-video-id">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="delete-cancel-btn">取消</button>
+                <button class="btn btn-danger" id="delete-confirm-btn">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="alert-modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2 class="modal-title" id="alert-modal-title">提示</h2>
+            <div class="modal-body">
+                <p id="alert-modal-message">操作成功！</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="alert-modal-ok-btn">确定</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        /* --- 0. 全局配置 (不变) --- */
+        const CDN_BASE_URL = 'https://cdn.ruijie-video.cn/';
+        const PLACEHOLDER_COVER = 'https://placehold.co/80x45/eee/ccc?text=No+Cover';
+        
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+        
+        function showGlobalStatus(message, type, elId = 'upload-status-message') {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            el.textContent = message;
+            el.className = type;
+            el.style.display = 'block';
+            setTimeout(() => {
+                if (el.textContent === message) {
+                     el.style.display = 'none';
+                }
+            }, 3000);
+        }
+
+        /* --- 1. 通用提示弹框逻辑 (不变) --- */
+        const alertModal = document.getElementById('alert-modal');
+        const alertModalTitle = document.getElementById('alert-modal-title');
+        const alertModalMessage = document.getElementById('alert-modal-message');
+        const alertModalOkBtn = document.getElementById('alert-modal-ok-btn');
+        let alertModalOkCallback = null;
+
+        function openAlertModal(title, message, okCallback) {
+            alertModalTitle.textContent = title;
+            alertModalMessage.textContent = message;
+            alertModalOkCallback = okCallback; // 存储回调
+            alertModal.classList.add('active');
+        }
+
+        alertModalOkBtn.addEventListener('click', () => {
+            alertModal.classList.remove('active');
+            if (typeof alertModalOkCallback === 'function') {
+                alertModalOkCallback(); // 执行回调
+            }
+            alertModalOkCallback = null; // 清除回调
+        });
+
+
+        /* --- 2. 标签输入功能 (不变) --- */
+        class TagInput {
+            // ... [代码和之前一样，未修改] ...
+            constructor(containerId) {
+                this.container = document.getElementById(containerId);
+                if (!this.container) return;
+                this.inputField = this.container.querySelector('.tag-input-field');
+                this.container.addEventListener('keydown', (e) => this.handleKeydown(e));
+                this.container.addEventListener('click', (e) => this.handleClick(e));
+            }
+            handleKeydown(e) {
+                if (e.target !== this.inputField) return;
+                const value = this.inputField.value;
+                if ((e.key === 'Enter' || e.key === ' ' || e.key === ',') && value.trim().length > 0) {
+                    e.preventDefault();
+                    this.createTag(value);
+                }
+            }
+            handleClick(e) {
+                if (e.target.classList.contains('tag-remove-btn')) {
+                    e.target.closest('.tag-chip').remove();
+                } else if (e.target === this.container) {
+                    this.inputField.focus();
+                }
+            }
+            createTag(text) {
+                const tagText = text.trim();
+                if (tagText === "" || this.isDuplicate(tagText)) {
+                    this.inputField.value = '';
+                    return;
+                }
+                const chip = document.createElement('span');
+                chip.className = 'tag-chip';
+                chip.innerHTML = `${escapeHTML(tagText)} <button type="button" class="tag-remove-btn">×</button>`;
+                this.container.insertBefore(chip, this.inputField);
+                this.inputField.value = '';
+            }
+            getTags() {
+                return Array.from(this.container.querySelectorAll('.tag-chip'))
+                            .map(chip => chip.textContent.replace(/×$/, '').trim());
+            }
+            setTags(tags) {
+                this.clearTags();
+                tags.forEach(tag => this.createTag(tag));
+            }
+            clearTags() {
+                this.container.querySelectorAll('.tag-chip').forEach(chip => chip.remove());
+                this.inputField.value = '';
+            }
+            isDuplicate(text) {
+                return this.getTags().includes(text);
+            }
+        }
+        const uploadTagInput = new TagInput('upload-tag-container');
+        const editTagInput = new TagInput('edit-tag-container');
+
+
+        /* --- 3. 标签页切换功能 (不变) --- */
+        (function() {
+            // ... [代码和之前一样] ...
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelectorAll('.nav-link').forEach(item => item.classList.remove('active'));
+                    this.classList.add('active');
+                    const tabName = this.getAttribute('data-tab');
+                    document.querySelectorAll('.tab-panel').forEach(panel => {
+                        panel.classList.remove('active');
+                    });
+                    const activePanel = document.getElementById(`${tabName}-panel`);
+                    activePanel.classList.add('active');
+                    if (tabName === 'management') {
+                        videoManagementModule.fetchVideos(1, '', true); // 切换时强制刷新
+                    }
+                });
+            });
+        })();
+
+        /* --- 4. "上传" 面板的封面预览功能 (不变) --- */
+        (function() {
+            // ... [代码和之前一样] ...
+            const coverInput = document.getElementById('upload-cover-input');
+            const coverPreview = document.getElementById('upload-cover-preview');
+            const previewPlaceholder = coverPreview.innerHTML; 
+            coverInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const objectURL = URL.createObjectURL(file);
+                    coverPreview.innerHTML = `<img src="${objectURL}" alt="封面预览">`;
+                    coverPreview.querySelector('img').onload = () => { URL.revokeObjectURL(objectURL); }
+                } else {
+                    coverPreview.innerHTML = previewPlaceholder;
+                }
+            });
+        })();
+
+
+        /* --- 5. "上传" 面板的上传逻辑 (不变) --- */
+        (function() {
+            const submitBtn = document.getElementById('upload-submit-btn');
+            const resetBtn = document.getElementById('upload-reset-btn');
+            const titleInput = document.getElementById('upload-title');
+            const descriptionInput = document.getElementById('upload-description');
+            const coverInput = document.getElementById('upload-cover-input');
+            const videoInput = document.getElementById('upload-video-input');
+            const statusMessage = document.getElementById('upload-status-message');
+            
+            const coverProgressContainer = document.getElementById('cover-progress-container');
+            const coverProgressBar = document.getElementById('cover-progress-bar');
+            const videoProgressContainer = document.getElementById('video-progress-container');
+            const videoProgressBar = document.getElementById('video-progress-bar');
+            const coverPreview = document.getElementById('upload-cover-preview');
+            const previewPlaceholderHTML = coverPreview.innerHTML;
+
+            let stsCredentials = null;
+            let credentialsExpireTime = 0;
+
+            function showStatus(message, type, el = statusMessage) {
+                el.textContent = message;
+                el.className = type;
+                el.style.display = 'block';
+            }
+            
+            function resetForm() {
+                titleInput.value = '';
+                descriptionInput.value = '';
+                coverInput.value = null;
+                videoInput.value = null;
+                uploadTagInput.clearTags();
+                coverPreview.innerHTML = previewPlaceholderHTML;
+                coverProgressContainer.style.display = 'none';
+                videoProgressContainer.style.display = 'none';
+                coverProgressBar.style.width = '0%'; coverProgressBar.textContent = '0%';
+                videoProgressBar.style.width = '0%'; videoProgressBar.textContent = '0%';
+            }
+            resetBtn.addEventListener('click', () => {
+                resetForm();
+                statusMessage.style.display = 'none';
+            });
+
+            async function getSTSCredentials() {
+                if (stsCredentials && credentialsExpireTime > (Date.now() / 1000 + 60)) {
+                    return stsCredentials;
+                }
+                showStatus('正在获取上传许可...', 'success');
+                try {
+                    const response = await fetch('/api/get-sts-credentials');
+                    if (!response.ok) throw new Error('获取密钥失败，请检查后端 API。');
+                    const data = await response.json();
+                    stsCredentials = data;
+                    credentialsExpireTime = data.expiredTime;
+                    return stsCredentials;
+                } catch (error) {
+                    console.error('getSTSCredentials 失败:', error);
+                    showStatus(`获取上传许可失败: ${error.message}`, 'error');
+                    return null;
+                }
+            }
+
+            async function uploadToCOS(cos, file, key, progressBarEl) {
+                return new Promise((resolve, reject) => {
+                    cos.uploadFile({
+                        Bucket: 'video-1383328809', Region: 'ap-hongkong',
+                        Key: key, Body: file,
+                        onProgress: (p) => {
+                            const percent = Math.floor(p.percent * 100);
+                            if (progressBarEl) {
+                                progressBarEl.style.width = percent + '%';
+                                progressBarEl.textContent = percent + '%';
+                            }
+                        }
+                    }, (err, data) => err ? reject(err) : resolve(data));
+                });
+            }
+            
+            async function compensateCOS(coverKey, videoKey, errorMsg) {
+                showStatus(`数据库写入失败... 正在回滚 COS 文件...`, 'error');
+                try {
+                    await fetch('/api/delete-cos-file', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ coverKey, videoKey })
+                    });
+                     openAlertModal('上传失败', `${errorMsg}。COS 文件已回滚。`);
+                     statusMessage.style.display = 'none';
+                } catch (deleteError) {
+                     openAlertModal('严重错误', `${errorMsg}。COS 文件回滚也失败了！请手动清理。`);
+                     statusMessage.style.display = 'none';
+                }
+            }
+
+            submitBtn.addEventListener('click', async () => {
+                submitBtn.disabled = true;
+                resetBtn.disabled = true;
+                submitBtn.textContent = '准备中...';
+                statusMessage.style.display = 'none';
+
+                const title = titleInput.value;
+                const description = descriptionInput.value;
+                const coverFile = coverInput.files[0];
+                const videoFile = videoInput.files[0];
+                const tags = uploadTagInput.getTags();
+
+                if (!title || !coverFile || !videoFile) {
+                    showStatus('错误：标题、封面和视频文件不能为空。', 'error');
+                    submitBtn.disabled = false;
+                    resetBtn.disabled = false;
+                    return;
+                }
+                
+                const credentials = await getSTSCredentials();
+                if (!credentials) {
+                    submitBtn.disabled = false;
+                    resetBtn.disabled = false;
+                    return;
+                }
+
+                const cos = new COS({
+                    SecretId: credentials.tmpSecretId,
+                    SecretKey: credentials.tmpSecretKey,
+                    SecurityToken: credentials.sessionToken,
+                });
+
+                const coverKey = `covers/${coverFile.name}`;
+                const videoKey = `videos/${videoFile.name}`;
+
+                submitBtn.textContent = '上传中...';
+                showStatus('开始上传...请勿关闭页面', 'success');
+                coverProgressContainer.style.display = 'block';
+                videoProgressContainer.style.display = 'block';
+
+                try {
+                    await Promise.all([
+                        uploadToCOS(cos, coverFile, coverKey, coverProgressBar),
+                        uploadToCOS(cos, videoFile, videoKey, videoProgressBar)
+                    ]);
+                    
+                    showStatus('文件上传成功！正在写入数据库...', 'success');
+
+                    try {
+                        const response = await fetch('/api/create-video-record', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                title, description, tags, coverKey, videoKey
+                            })
+                        });
+                        const dbResult = await response.json();
+                        if (!response.ok) throw new Error(dbResult.error || `数据库API错误: ${response.statusText}`);
+                        
+                        openAlertModal('上传成功', `视频 "${escapeHTML(title)}" 已成功创建！`, () => {
+                            resetForm();
+                            statusMessage.style.display = 'none';
+                        });
+
+                    } catch (dbError) {
+                        await compensateCOS(coverKey, videoKey, dbError.message);
+                    }
+
+                } catch (cosError) {
+                    console.error('COS 上传时发生错误:', cosError);
+                    showStatus(`文件上传失败: ${cosError.message || cosError}`, 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    resetBtn.disabled = false;
+                    submitBtn.textContent = '提交上传';
+                }
+            });
+            
+            window.appGlobals = {
+                getSTSCredentials,
+                uploadToCOS,
+                compensateCOS,
+                showStatus: showGlobalStatus,
+                openAlertModal
+            };
+        })();
+
+
+        /* --- 6. (!!! 已修改 !!!) "视频管理" 模块 (暴露 Getters) --- */
+        const videoManagementModule = (function() {
+            // ... [DOM 元素获取和之前一样] ...
+            const tableBody = document.getElementById('manage-video-table-body');
+            const searchInput = document.getElementById('manage-search-input');
+            const searchBtn = document.getElementById('manage-search-btn');
+            const statusMessage = document.getElementById('manage-status-message');
+            const paginationInfo = document.getElementById('manage-pagination-info');
+            const prevBtn = document.getElementById('manage-prev-btn');
+            const nextBtn = document.getElementById('manage-next-btn');
+            const deleteModal = document.getElementById('delete-confirm-modal');
+            const deleteTitle = document.getElementById('delete-video-title');
+            const deleteIdInput = document.getElementById('delete-video-id');
+            const deleteCancelBtn = document.getElementById('delete-cancel-btn');
+            const deleteConfirmBtn = document.getElementById('delete-confirm-btn');
+
+            let currentPage = 1;
+            let totalPages = 1;
+            let currentSearch = '';
+            let videoDataCache = {};
+            
+            let pageCache = {};
+            let currentCacheKey = '';
+            const CACHE_TIMEOUT_MS = 5 * 60 * 1000;
+            let cacheTimestamp = 0;
+
+            function clearCache() {
+                pageCache = {};
+                cacheTimestamp = 0;
+            }
+
+            async function fetchVideos(page, search = '', forceRefresh = false) {
+                // ... [函数内部逻辑不变] ...
+                currentPage = page;
+                currentSearch = search;
+                
+                const newCacheKey = search || '_default';
+                if (newCacheKey !== currentCacheKey) {
+                    clearCache();
+                    currentCacheKey = newCacheKey;
+                }
+                
+                if (Date.now() - cacheTimestamp > CACHE_TIMEOUT_MS) {
+                    clearCache();
+                }
+
+                if (!forceRefresh && pageCache[currentCacheKey] && pageCache[currentCacheKey][page]) {
+                    console.log(`Loading page ${page} from cache...`);
+                    const data = pageCache[currentCacheKey][page];
+                    renderVideos(data.videos);
+                    renderPagination(data.pagination);
+                    totalPages = data.pagination.totalPages;
+                    statusMessage.style.display = 'none';
+                    return;
+                }
+                
+                showStatus('正在加载数据...', 'success');
+                tableBody.innerHTML = '<tr><td colspan="6">正在加载...</td></tr>';
+
+                try {
+                    const response = await fetch(`/api/get-videos?page=${page}&limit=5&search=${encodeURIComponent(search)}`);
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || '加载失败');
+                    
+                    if (!pageCache[currentCacheKey]) { pageCache[currentCacheKey] = {}; }
+                    pageCache[currentCacheKey][page] = data;
+                    cacheTimestamp = Date.now();
+                    
+                    renderVideos(data.videos);
+                    renderPagination(data.pagination);
+                    totalPages = data.pagination.totalPages;
+                    statusMessage.style.display = 'none';
+
+                } catch (error) {
+                    console.error('Fetch videos error:', error);
+                    showStatus(`加载视频失败: ${error.message}`, 'error');
+                    tableBody.innerHTML = `<tr><td colspan="6" style="color: red;">${error.message}</td></tr>`;
+                }
+            }
+
+            function renderVideos(videos) {
+                // ... [函数内部逻辑不变] ...
+                videoDataCache = {};
+                if (videos.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6">未找到视频。</td></tr>';
+                    return;
+                }
+                tableBody.innerHTML = videos.map(video => {
+                    videoDataCache[video.id] = video;
+                    const coverUrl = video.cover_key ? `${CDN_BASE_URL}${video.cover_key}` : PLACEHOLDER_COVER;
+                    
+                    return `
+                    <tr data-video-id="${video.id}">
+                        <td class="cover-cell">
+                            <img src="${coverUrl}" alt="封面" class="cover-thumbnail" loading="lazy"
+                                 onerror="this.src='${PLACEHOLDER_COVER}'; this.onerror=null;">
+                        </td>
+                        <td>${escapeHTML(video.title)}</td>
+                        <td>
+                            <div class="tag-chip-container">
+                                ${video.tags.map(tag => `<span class="tag-chip">${escapeHTML(tag.tag_name)}</span>`).join('')}
+                            </div>
+                        </td>
+                        <td>${video.upload_date}</td>
+                        <td>${video.views_count}</td>
+                        <td class="action-cell">
+                            <button class="btn-action-edit" data-id="${video.id}">编辑</button>
+                            <button class="btn-action-delete" data-id="${video.id}">删除</button>
+                        </td>
+                    </tr>
+                `}).join('');
+            }
+
+            function renderPagination({ currentPage, totalPages, totalCount }) {
+                // ... [函数内部逻辑不变] ...
+                paginationInfo.textContent = `共 ${totalCount} 条记录，第 ${currentPage} / ${totalPages} 页`;
+                prevBtn.disabled = currentPage <= 1;
+                nextBtn.disabled = currentPage >= totalPages;
+            }
+
+            // ... [事件监听器逻辑不变] ...
+            searchBtn.addEventListener('click', () => fetchVideos(1, searchInput.value, true));
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') fetchVideos(1, searchInput.value, true);
+            });
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) fetchVideos(currentPage - 1, currentSearch);
+            });
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) fetchVideos(currentPage + 1, currentSearch);
+            });
+
+            tableBody.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-action-delete')) {
+                    handleDeleteClick(e.target.dataset.id);
+                }
+                if (e.target.classList.contains('btn-action-edit')) {
+                    editModalModule.openModal(videoDataCache[e.target.dataset.id]);
+                }
+            });
+
+            function handleDeleteClick(id) {
+                // ... [函数内部逻辑不变] ...
+                const video = videoDataCache[id];
+                deleteTitle.textContent = video.title;
+                deleteIdInput.value = id;
+                deleteModal.classList.add('active');
+            }
+
+            deleteCancelBtn.addEventListener('click', () => deleteModal.classList.remove('active'));
+            deleteConfirmBtn.addEventListener('click', async () => {
+                // ... [函数内部逻辑不变] ...
+                const id = deleteIdInput.value;
+                deleteConfirmBtn.disabled = true;
+                deleteConfirmBtn.textContent = '删除中...';
+                
+                try {
+                    const response = await fetch('/api/delete-video', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ videoId: parseInt(id, 10) })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error);
+                    
+                    clearCache();
+                    showStatus(`视频 (ID: ${id}) 删除成功，正在刷新列表...`, 'success');
+                    fetchVideos(currentPage, currentSearch, true);
+                
+                } catch (error) {
+                    showStatus(`删除失败: ${error.message}`, 'error');
+                } finally {
+                    deleteModal.classList.remove('active');
+                    deleteConfirmBtn.disabled = false;
+                    deleteConfirmBtn.textContent = '确认删除';
+                }
+            });
+            
+            function showStatus(message, type) {
+                showGlobalStatus(message, type, 'manage-status-message');
+            }
+            
+            // (!!! 优化点 #1 !!!)
+            // 返回一个包含当前状态的 Getters
+            return { 
+                fetchVideos, 
+                showStatus, 
+                clearCache,
+                // 新增这两个 Getter
+                getCurrentPage: () => currentPage,
+                getCurrentSearch: () => currentSearch
+            };
+        })();
+
+
+        /* --- 7. (!!! 已修改 !!!) "编辑模态框" 模块 (使用 Getters 刷新) --- */
+        const editModalModule = (function() {
+            // ... [DOM 元素获取和之前一样] ...
+            const modal = document.getElementById('edit-modal');
+            const titleInput = document.getElementById('edit-title');
+            const descriptionInput = document.getElementById('edit-description');
+            const coverInput = document.getElementById('edit-cover-input');
+            const videoInput = document.getElementById('edit-video-input');
+            const coverPreview = document.getElementById('edit-cover-preview');
+            const videoFilename = document.getElementById('edit-video-filename');
+            const statusMessage = document.getElementById('edit-status-message');
+            const saveBtn = document.getElementById('edit-save-btn');
+            const cancelBtn = document.getElementById('edit-cancel-btn');
+            const coverProgressContainer = document.getElementById('edit-cover-progress');
+            const videoProgressContainer = document.getElementById('edit-video-progress');
+            const videoIdInput = document.getElementById('edit-video-id');
+            const oldCoverKeyInput = document.getElementById('edit-old-cover-key');
+            const oldVideoKeyInput = document.getElementById('edit-old-video-key');
+            
+            function showEditStatus(message, type) {
+                 showGlobalStatus(message, type, 'edit-status-message');
+            }
+
+            function openModal(video) {
+                // ... [函数内部逻辑不变] ...
+                if (!video) return;
+                videoIdInput.value = video.id;
+                titleInput.value = video.title;
+                descriptionInput.value = video.description || '';
+                
+                oldCoverKeyInput.value = video.cover_key;
+                oldVideoKeyInput.value = video.video_key;
+
+                editTagInput.setTags(video.tags.map(t => t.tag_name));
+                
+                const coverUrl = video.cover_key ? `${CDN_BASE_URL}${video.cover_key}` : PLACEHOLDER_COVER;
+                coverPreview.innerHTML = `<img src="${coverUrl}" alt="当前封面" onerror="this.src='${PLACEHOLDER_COVER}'; this.onerror=null;">`;
+                videoFilename.textContent = `当前视频: ${video.video_key}`;
+                
+                coverInput.value = null;
+                videoInput.value = null;
+                statusMessage.style.display = 'none';
+                coverProgressContainer.innerHTML = '';
+                videoProgressContainer.innerHTML = '';
+                coverProgressContainer.style.display = 'none';
+                videoProgressContainer.style.display = 'none';
+
+                modal.classList.add('active');
+            }
+            
+            function closeModal() {
+                modal.classList.remove('active');
+            }
+            cancelBtn.addEventListener('click', closeModal);
+            
+            coverInput.addEventListener('change', function(e) {
+                // ... [函数内部逻辑不变] ...
+                const file = e.target.files[0];
+                if (file) {
+                    const objectURL = URL.createObjectURL(file);
+                    coverPreview.innerHTML = `<img src="${objectURL}" alt="新封面预览">`;
+                    coverPreview.querySelector('img').onload = () => { URL.revokeObjectURL(objectURL); }
+                } else {
+                    const oldCoverUrl = oldCoverKeyInput.value ? `${CDN_BASE_URL}${oldCoverKeyInput.value}` : PLACEHOLDER_COVER;
+                    coverPreview.innerHTML = `<img src="${oldCoverUrl}" alt="当前封面" onerror="this.src='${PLACEHOLDER_COVER}'; this.onerror=null;">`;
+                }
+            });
+
+            saveBtn.addEventListener('click', async () => {
+                // ... [函数上半部分逻辑不变] ...
+                saveBtn.disabled = true;
+                cancelBtn.disabled = true;
+                saveBtn.textContent = '保存中...';
+                
+                const videoId = parseInt(videoIdInput.value, 10);
+                const title = titleInput.value;
+                const description = descriptionInput.value;
+                const tags = editTagInput.getTags();
+                const newCoverFile = coverInput.files[0];
+                const newVideoFile = videoInput.files[0];
+                const oldCoverKey = oldCoverKeyInput.value;
+                const oldVideoKey = oldVideoKeyInput.value;
+                
+                let newCoverKey = null;
+                let newVideoKey = null;
+
+                try {
+                    // ... [COS 上传逻辑不变] ...
+                    let cos = null;
+                    if (newCoverFile || newVideoFile) {
+                        const credentials = await window.appGlobals.getSTSCredentials();
+                        if (!credentials) throw new Error("获取 STS 密钥失败");
+                        cos = new COS({
+                            SecretId: credentials.tmpSecretId,
+                            SecretKey: credentials.tmpSecretKey,
+                            SecurityToken: credentials.sessionToken,
+                        });
+                    }
+                    
+                    const uploadPromises = [];
+
+                    if (newCoverFile) {
+                        newCoverKey = `covers/${newCoverFile.name}`;
+                        coverProgressContainer.innerHTML = `<div class="progress-label">新封面上传中...</div><div class="progress-bar-bg"><div class="progress-bar" style="width:0%">0%</div></div>`;
+                        coverProgressContainer.style.display = 'block';
+                        uploadPromises.push(
+                            window.appGlobals.uploadToCOS(cos, newCoverFile, newCoverKey, coverProgressContainer.querySelector('.progress-bar'))
+                        );
+                    }
+
+                    if (newVideoFile) {
+                        newVideoKey = `videos/${newVideoFile.name}`;
+                        videoProgressContainer.innerHTML = `<div class="progress-label">新视频上传中...</div><div class="progress-bar-bg"><div class="progress-bar" style="width:0%">0%</div></div>`;
+                        videoProgressContainer.style.display = 'block';
+                        uploadPromises.push(
+                            window.appGlobals.uploadToCOS(cos, newVideoFile, newVideoKey, videoProgressContainer.querySelector('.progress-bar'))
+                        );
+                    }
+
+                    await Promise.all(uploadPromises);
+                    
+                    const response = await fetch('/api/update-video', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            videoId, title, description, tags,
+                            newCoverKey, newVideoKey,
+                            oldCoverKey, oldVideoKey
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error);
+
+                    // (!!! 优化点 #2 !!!)
+                    // 1. 通过 Getters 获取当前状态
+                    const page = videoManagementModule.getCurrentPage();
+                    const search = videoManagementModule.getCurrentSearch();
+                    
+                    closeModal(); 
+                    videoManagementModule.clearCache(); // 2. 清空缓存
+                    // 3. 在主列表显示成功消息
+                    videoManagementModule.showStatus(`视频 (ID: ${videoId}) 更新成功！`, 'success'); 
+                    // 4. 强制刷新列表 (使用获取到的 page 和 search)
+                    videoManagementModule.fetchVideos(page, search, true);
+                    
+                } catch (error) {
+                    console.error('更新失败:', error);
+                    showEditStatus(`更新失败: ${error.message}`, 'error');
+                    
+                    if ((newCoverKey || newVideoKey) && (error.message.includes('数据库') || error.message.includes('更新失败'))) {
+                        await window.appGlobals.compensateCOS(newCoverKey, newVideoKey);
+                        showEditStatus(`数据库更新失败: ${error.message}。新上传的 COS 文件已回滚。`, 'error');
+                    }
+                } finally {
+                    saveBtn.disabled = false;
+                    cancelBtn.disabled = false;
+                    saveBtn.textContent = '保存更改';
+                }
+            });
+
+            return { openModal };
+        })();
+        
+        /* --- 8. 页面加载时自动获取数据 (不变) --- */
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.getElementById('management-panel').classList.contains('active')) {
+                videoManagementModule.fetchVideos(1, '', true);
+            }
+        });
+    </script>
+</body>
+</html>
