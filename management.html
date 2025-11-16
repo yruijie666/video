@@ -98,6 +98,138 @@
         #edit-status-message { margin-top: 15px; font-size: 14px; padding: 10px; border-radius: 6px; display: none; }
         #edit-status-message.success { background-color: #e6f7f1; color: #0d6a4f; display: block; }
         #edit-status-message.error { background-color: #fef0f0; color: #d92d20; display: block; }
+
+        /* (!!! 新增 CSS !!!) 
+           用于评论管理表格，防止评论内容过长撑破表格 */
+           .data-table .comment-content-cell {
+            max-width: 400px;
+            white-space: normal; /* 允许换行 */
+            word-break: break-word; /* 强制断词 */
+            line-height: 1.5;
+        }
+        
+        /* (!!! 新增 CSS !!!) 
+           用于评论管理表格，显示所属视频 */
+        .data-table .video-title-cell {
+            font-size: 13px;
+            color: #555;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* (!!! 新增 CSS !!!) 用于分页跳转控件 */
+        .pagination-controls { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; /* 统一控制子元素间距 */
+        }
+        
+        .pagination-page-jump { 
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+            margin-left: 10px; /* 与“下一页”按钮隔开 */
+        }
+        
+        .pagination-page-input {
+            width: 50px;
+            padding: 7px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            text-align: center;
+            /* 隐藏数字输入框的上下箭头 */
+            -moz-appearance: textfield;
+            appearance: none;         /* 标准 */
+        }
+        
+        .pagination-page-input::-webkit-outer-spin-button,
+        .pagination-page-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        /* (!!! 新增 CSS !!!) 统计卡片布局 */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        /* (!!! 新增 CSS !!!) 统计列表样式 */
+        .analytics-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .analytics-list-item {
+            display: flex;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .analytics-list-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .analytics-item-cover {
+            width: 72px; /* 16:9 */
+            height: 40.5px;
+            border-radius: 4px;
+            object-fit: cover;
+            margin-right: 12px;
+            flex-shrink: 0; /* 防止图片被压缩 */
+            background-color: #f4f5f7;
+        }
+        
+        .analytics-item-info {
+            flex-grow: 1;
+            overflow: hidden; /* 防止长标题溢出 */
+        }
+        
+        .analytics-item-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* 截断长标题 */
+        }
+        
+        .analytics-item-metric {
+            font-size: 13px;
+            color: #777;
+            margin-top: 3px;
+        }
+        
+        .analytics-item-rank {
+            font-size: 16px;
+            font-weight: 600;
+            color: #95a5a6;
+            margin-right: 15px;
+            width: 20px;
+            text-align: right;
+        }
+
+        .analytics-loading, .analytics-error {
+            padding: 20px;
+            font-size: 14px;
+            color: #7f8c8d;
+            text-align: center;
+        }
+        
+        .analytics-error {
+            color: #e74c3c;
+        }
+        
+
     </style>
 </head>
 <body>
@@ -120,14 +252,10 @@
                         <i>💬</i> 评论管理
                     </a>
                 </li>
+                
                 <li class="nav-item">
-                    <a href="#tags" class="nav-link" data-tab="tags">
-                        <i>🏷️</i> 标签管理
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#stats" class="nav-link" data-tab="stats">
-                        <i>📊</i> 播放量统计
+                    <a href="#analytics" class="nav-link" data-tab="analytics">
+                        <i>📊</i> 统计分析
                     </a>
                 </li>
             </ul>
@@ -146,7 +274,7 @@
                          </div>
                          <div class="form-group">
                              <label class="form-label" for="upload-description">视频描述</label>
-                             <textarea id="upload-description" class="form-control textarea-control" placeholder="请输入视频描述（可选）"></textarea>
+                             <textarea id="upload-description" class="form-control textarea-control" placeholder="请输入视频描述"></textarea>
                          </div>
                          <div class="form-group">
                              <label class="form-label">视频标签 (Tags)</label>
@@ -225,26 +353,105 @@
             </div>
             
             <div class="tab-panel" id="comments-panel">
-                 <h1 class="page-title">评论管理</h1>
-                 <div class="card">
-                     <div class="card-header"><i>💬</i> 评论列表与审核</div>
-                     <div class="card-body"><p style="color: #7f8c8d; font-size: 15px;">评论管理功能正在开发中...</p></div>
-                 </div>
-            </div>
-            
-            <div class="tab-panel" id="tags-panel">
-                 <h1 class="page-title">标签管理</h1>
-                 <div class="card">
-                     <div class="card-header"><i>🏷️</i> 标签列表</div>
-                     <div class="card-body"><p style="color: #7f8c8d; font-size: 15px;">标签管理功能正在开发中...</p></div>
-                 </div>
-            </div>
-
-            <div class="tab-panel" id="stats-panel">
-                <h1 class="page-title">播放量统计</h1>
+                <h1 class="page-title">评论管理</h1>
                 <div class="card">
-                    <div class="card-header"><i>📊</i> 数据仪表盘</div>
-                    <div class="card-body"><p style="color: #7f8c8d; font-size: 15px;">播放量统计功能正在开发中...</p></div>
+                    <div class="card-header"><i>💬</i> 评论列表与审核</div>
+                    <div class="card-body">
+                        <div class="search-group">
+                           <input type="text" id="comments-search-content" class="form-control search-input" placeholder="按评论内容搜索...">
+                           <input type="text" id="comments-search-video" class="form-control search-input" placeholder="按视频标题筛选...">
+                           <button class="btn btn-primary" id="comments-search-btn">搜索</button>
+                       </div>
+                       <div id="comments-status-message"></div>
+                       
+                       <div class="data-table-container">
+                           <table class="data-table">
+                               <thead>
+                                   <tr>
+                                       <th>评论内容</th>
+                                       <th>所属视频</th>
+                                       <th>发表时间</th>
+                                       <th>操作</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="comments-table-body">
+                                   </tbody>
+                           </table>
+                       </div>
+                       
+                       <div class="pagination-container">
+                            <div class="pagination-info" id="comments-pagination-info">
+                                正在加载...
+                            </div>
+                            <div class="pagination-controls">
+                                <button class="btn btn-secondary" id="comments-prev-btn" disabled>上一页</button>
+                                <button class="btn btn-secondary" id="comments-next-btn" disabled>下一页</button>
+                            
+                                <div class="pagination-page-jump">
+                                    <input type="number" class="form-control pagination-page-input" id="comments-page-jump-input" min="1">
+                                    <button class="btn btn-secondary" id="comments-page-jump-btn">跳转</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+           </div>
+            
+
+
+           <div class="tab-panel" id="analytics-panel">
+            <h1 class="page-title">统计分析</h1>
+            
+            <div class="analytics-grid">
+                
+                <div class="card">
+                    <div class="card-header"><i>▶️</i> 播放量 Top 5 视频</div>
+                    <div class="card-body" id="analytics-top-videos-body">
+                        <div class="analytics-loading">正在加载...</div>
+                        </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header"><i>🔥</i> 价值 Top 5 标签 (按播放量)</div>
+                    <div class="card-body" id="analytics-toptags-views-body">
+                        <div class="analytics-loading">正在加载...</div>
+                        </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header"><i>🏷️</i> 热门 Top 5 标签 (按视频数)</div>
+                    <div class="card-body" id="analytics-toptags-count-body">
+                        <div class="analytics-loading">正在加载...</div>
+                        </div>
+                </div>
+                
+            </div>
+            </div><div class="tab-panel" id="analytics-panel">
+                <h1 class="page-title">统计分析</h1>
+                
+                <div class="analytics-grid">
+                    
+                    <div class="card">
+                        <div class="card-header"><i>▶️</i> 播放量 Top 5 视频</div>
+                        <div class="card-body" id="analytics-top-videos-body">
+                            <div class="analytics-loading">正在加载...</div>
+                            </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header"><i>🔥</i> 价值 Top 5 标签 (按播放量)</div>
+                        <div class="card-body" id="analytics-toptags-views-body">
+                            <div class="analytics-loading">正在加载...</div>
+                            </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header"><i>🏷️</i> 热门 Top 5 标签 (按视频数)</div>
+                        <div class="card-body" id="analytics-toptags-count-body">
+                            <div class="analytics-loading">正在加载...</div>
+                            </div>
+                    </div>
+                    
                 </div>
             </div>
 
@@ -320,6 +527,21 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="delete-comment-modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2 class="modal-title">确认删除评论</h2>
+            <div class="modal-body">
+                <p>你确定要删除这条评论吗？</p>
+                <p style="margin-top: 10px; font-style: italic; background: #f9fafb; padding: 10px; border-radius: 4px;" id="delete-comment-text"></p>
+                <p style="margin-top: 10px; font-size: 13px; color: #e74c3c;">此操作不可撤销。</p>
+                <input type="hidden" id="delete-comment-id">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="delete-comment-cancel-btn">取消</button>
+                <button class="btn btn-danger" id="delete-comment-confirm-btn">确认删除</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         /* --- 0. 全局配置 (不变) --- */
@@ -424,9 +646,8 @@
         const editTagInput = new TagInput('edit-tag-container');
 
 
-        /* --- 3. 标签页切换功能 (不变) --- */
+        /* --- 3. 标签页切换功能 (!!! 已修改 !!!) --- */
         (function() {
-            // ... [代码和之前一样] ...
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -438,8 +659,16 @@
                     });
                     const activePanel = document.getElementById(`${tabName}-panel`);
                     activePanel.classList.add('active');
+                    
                     if (tabName === 'management') {
                         videoManagementModule.fetchVideos(1, '', true); // 切换时强制刷新
+                    }
+                    if (tabName === 'comments') {
+                        commentManagementModule.fetchComments(1, '', '', true); // 切换时强制刷新
+                    }
+                    // (!!! 新增逻辑 !!!)
+                    if (tabName === 'analytics') {
+                        analyticsModule.fetchAnalytics(); // 加载统计数据
                     }
                 });
             });
@@ -984,11 +1213,327 @@
             return { openModal };
         })();
         
-        /* --- 8. 页面加载时自动获取数据 (不变) --- */
+        /* (!!! 8. 新增模块: 评论管理 - 已修改!!!) */
+        const commentManagementModule = (function() {
+            // 缓存 DOM 元素
+            const tableBody = document.getElementById('comments-table-body');
+            const searchContentInput = document.getElementById('comments-search-content');
+            const searchVideoInput = document.getElementById('comments-search-video');
+            const searchBtn = document.getElementById('comments-search-btn');
+            const statusMessage = document.getElementById('comments-status-message');
+            const paginationInfo = document.getElementById('comments-pagination-info');
+            const prevBtn = document.getElementById('comments-prev-btn');
+            const nextBtn = document.getElementById('comments-next-btn');
+            
+            // (!!! 新增 !!!) 跳转控件
+            const pageJumpInput = document.getElementById('comments-page-jump-input');
+            const pageJumpBtn = document.getElementById('comments-page-jump-btn');
+
+            // 删除模态框
+            const deleteModal = document.getElementById('delete-comment-modal');
+            const deleteCommentText = document.getElementById('delete-comment-text');
+            const deleteCommentIdInput = document.getElementById('delete-comment-id');
+            const deleteCancelBtn = document.getElementById('delete-comment-cancel-btn');
+            const deleteConfirmBtn = document.getElementById('delete-comment-confirm-btn');
+
+            let currentPage = 1;
+            let totalPages = 1;
+            let currentCommentSearch = '';
+            let currentVideoSearch = '';
+
+            function showStatus(message, type) {
+                showGlobalStatus(message, type, 'comments-status-message');
+            }
+
+            async function fetchComments(page, commentSearch = '', videoSearch = '', forceRefresh = false) {
+                // (!!! 修改 !!!) 校验 page
+                let targetPage = parseInt(page, 10);
+                if (isNaN(targetPage) || targetPage < 1) {
+                    targetPage = 1;
+                }
+                // (!!! 修改 !!!) 增加 totalPages 校验
+                // (只有在 totalPages > 0 且非强制刷新时才校验上限)
+                if (!forceRefresh && totalPages > 0 && targetPage > totalPages) {
+                    targetPage = totalPages;
+                }
+                
+                currentPage = targetPage;
+                currentCommentSearch = commentSearch;
+                currentVideoSearch = videoSearch;
+                
+                showStatus('正在加载评论...', 'success');
+                tableBody.innerHTML = '<tr><td colspan="4">正在加载...</td></tr>';
+
+                try {
+                    const params = new URLSearchParams({
+                        page: currentPage,
+                        limit: 10, // (!!! 修改 !!!) 数量从 5 -> 10 (与你后端匹配)
+                        commentSearch: commentSearch,
+                        videoSearch: videoSearch
+                    });
+                    
+                    const response = await fetch(`/api/manage-comments?${params.toString()}`, { method: 'GET' });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || '加载失败');
+                    
+                    renderComments(data.comments);
+                    // (!!! totalPages 会在这里被正确赋值 !!!)
+                    totalPages = data.pagination.totalPages; 
+                    renderPagination(data.pagination);
+                    
+                    statusMessage.style.display = 'none';
+
+                } catch (error) {
+                    console.error('Fetch comments error:', error);
+                    showStatus(`加载评论失败: ${error.message}`, 'error');
+                    tableBody.innerHTML = `<tr><td colspan="4" style="color: red;">${error.message}</td></tr>`;
+                }
+            }
+
+            function renderComments(comments) {
+                if (comments.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="4">未找到评论。</td></tr>';
+                    return;
+                }
+                tableBody.innerHTML = comments.map(comment => {
+                    return `
+                    <tr data-comment-id="${comment.comment_id}">
+                        <td class="comment-content-cell">${escapeHTML(comment.content)}</td>
+                        <td class="video-title-cell">${escapeHTML(comment.video_title)}</td>
+                        <td>${comment.created_at}</td>
+                        <td class="action-cell">
+                            <button class="btn-action-delete" 
+                                    data-id="${comment.comment_id}" 
+                                    data-content="${escapeHTML(comment.content)}">删除</button>
+                        </td>
+                    </tr>
+                `}).join('');
+            }
+
+            // (!!! 此函数已修改 !!!)
+            function renderPagination({ currentPage, totalPages, totalCount }) {
+                paginationInfo.textContent = `共 ${totalCount} 条评论，第 ${currentPage} / ${totalPages} 页`;
+                prevBtn.disabled = currentPage <= 1;
+                nextBtn.disabled = currentPage >= totalPages;
+                
+                // (!!! 新增 !!!) 更新输入框的值和范围
+                pageJumpInput.value = currentPage;
+                pageJumpInput.max = totalPages;
+                
+                // (!!! 新增 !!!) 控制跳转控件的显隐
+                const jumpContainer = pageJumpInput.closest('.pagination-page-jump');
+                if (totalPages <= 1) {
+                    jumpContainer.style.display = 'none';
+                } else {
+                    jumpContainer.style.display = 'flex';
+                }
+            }
+
+            // --- 事件监听 ---
+            searchBtn.addEventListener('click', () => {
+                fetchComments(1, searchContentInput.value, searchVideoInput.value, true);
+            });
+            
+            // (!!! 此监听已修改 !!!)
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    const targetPage = currentPage - 1;
+                    pageJumpInput.value = targetPage; // (!!! 修改 !!!) 同步更新输入框
+                    fetchComments(targetPage, currentCommentSearch, currentVideoSearch);
+                }
+            });
+            
+            // (!!! 此监听已修改 !!!)
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    const targetPage = currentPage + 1;
+                    pageJumpInput.value = targetPage; // (!!! 修改 !!!) 同步更新输入框
+                    fetchComments(targetPage, currentCommentSearch, currentVideoSearch);
+                }
+            });
+
+            // (!!! 新增 !!!) 跳转按钮
+            pageJumpBtn.addEventListener('click', () => {
+                const targetPage = parseInt(pageJumpInput.value, 10);
+                if (targetPage === currentPage) return;
+                fetchComments(targetPage, currentCommentSearch, currentVideoSearch);
+            });
+
+            // (!!! 新增 !!!) 回车键跳转
+            pageJumpInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    pageJumpBtn.click(); // 触发跳转按钮的点击事件
+                }
+            });
+
+
+            // 删除按钮 (使用事件委托)
+            tableBody.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-action-delete')) {
+                    const id = e.target.dataset.id;
+                    const content = e.target.dataset.content;
+                    handleDeleteClick(id, content);
+                }
+            });
+
+            function handleDeleteClick(id, content) {
+                deleteCommentIdInput.value = id;
+                deleteCommentText.textContent = content.length > 100 ? content.substring(0, 100) + '...' : content;
+                deleteModal.classList.add('active');
+            }
+
+            deleteCancelBtn.addEventListener('click', () => deleteModal.classList.remove('active'));
+            
+            deleteConfirmBtn.addEventListener('click', async () => {
+                const id = deleteCommentIdInput.value;
+                deleteConfirmBtn.disabled = true;
+                deleteConfirmBtn.textContent = '删除中...';
+                
+                try {
+                    const response = await fetch(`/api/manage-comments?commentId=${id}`, {
+                        method: 'DELETE',
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error);
+
+                    showStatus(`评论 (ID: ${id}) 删除成功，正在刷新列表...`, 'success');
+                    // 刷新当前页
+                    fetchComments(currentPage, currentCommentSearch, currentVideoSearch, true); 
+                
+                } catch (error) {
+                    showStatus(`删除失败: ${error.message}`, 'error');
+                } finally {
+                    deleteModal.classList.remove('active');
+                    deleteConfirmBtn.disabled = false;
+                    deleteConfirmBtn.textContent = '确认删除';
+                }
+            });
+            
+            return { 
+                fetchComments
+            };
+        })();
+
+        /* (!!! 9. 新增模块: 统计分析 !!!) */
+        const analyticsModule = (function() {
+            let hasFetched = false;
+            
+            const videosBody = document.getElementById('analytics-top-videos-body');
+            const tagsViewsBody = document.getElementById('analytics-toptags-views-body');
+            const tagsCountBody = document.getElementById('analytics-toptags-count-body');
+
+            function showLoading() {
+                videosBody.innerHTML = `<div class="analytics-loading">正在加载...</div>`;
+                tagsViewsBody.innerHTML = `<div class="analytics-loading">正在加载...</div>`;
+                tagsCountBody.innerHTML = `<div class="analytics-loading">正在加载...</div>`;
+            }
+
+            function showError(message) {
+                const errorHTML = `<div class="analytics-error">加载失败: ${escapeHTML(message)}</div>`;
+                videosBody.innerHTML = errorHTML;
+                tagsViewsBody.innerHTML = errorHTML;
+                tagsCountBody.innerHTML = errorHTML;
+            }
+
+            function renderTopVideos(data) {
+                if (!data || data.length === 0) {
+                    videosBody.innerHTML = `<div class="analytics-loading">暂无数据</div>`;
+                    return;
+                }
+                const listHTML = data.map((video, index) => {
+                    const coverUrl = video.cover_key ? `${CDN_BASE_URL}${video.cover_key}` : PLACEHOLDER_COVER;
+                    return `
+                    <li class="analytics-list-item">
+                        <span class="analytics-item-rank">${index + 1}</span>
+                        <img src="${coverUrl}" alt="封面" class="analytics-item-cover" loading="lazy"
+                             onerror="this.src='${PLACEHOLDER_COVER}'; this.onerror=null;">
+                        <div class="analytics-item-info">
+                            <div class="analytics-item-title" title="${escapeHTML(video.title)}">${escapeHTML(video.title)}</div>
+                            <div class="analytics-item-metric">${video.views_count} 次播放</div>
+                        </div>
+                    </li>`;
+                }).join('');
+                videosBody.innerHTML = `<ul class="analytics-list">${listHTML}</ul>`;
+            }
+
+            function renderTopTagsByViews(data) {
+                if (!data || data.length === 0) {
+                    tagsViewsBody.innerHTML = `<div class="analytics-loading">暂无数据</div>`;
+                    return;
+                }
+                const listHTML = data.map((tag, index) => `
+                    <li class="analytics-list-item">
+                        <span class="analytics-item-rank">${index + 1}</span>
+                        <div class="analytics-item-info">
+                            <div class="analytics-item-title">${escapeHTML(tag.tag_name)}</div>
+                            <div class="analytics-item-metric">${parseInt(tag.total_views, 10)} 次总播放</div>
+                        </div>
+                    </li>`).join('');
+                tagsViewsBody.innerHTML = `<ul class="analytics-list">${listHTML}</ul>`;
+            }
+
+            function renderTopTagsByCount(data) {
+                if (!data || data.length === 0) {
+                    tagsCountBody.innerHTML = `<div class="analytics-loading">暂无数据</div>`;
+                    return;
+                }
+                const listHTML = data.map((tag, index) => `
+                    <li class="analytics-list-item">
+                        <span class="analytics-item-rank">${index + 1}</span>
+                        <div class="analytics-item-info">
+                            <div class="analytics-item-title">${escapeHTML(tag.tag_name)}</div>
+                            <div class="analytics-item-metric">${tag.video_count} 个视频</div>
+                        </div>
+                    </li>`).join('');
+                tagsCountBody.innerHTML = `<ul class="analytics-list">${listHTML}</ul>`;
+            }
+            
+            async function fetchAnalytics() {
+                // (!!! 仅在未获取过数据时才加载 !!!)
+                if (hasFetched) return; 
+                
+                showLoading();
+                hasFetched = true; // 立即设置，防止重复请求
+
+                try {
+                    const response = await fetch('/api/analytics');
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'API 请求失败');
+
+                    renderTopVideos(data.topVideos);
+                    renderTopTagsByViews(data.topTagsByViews);
+                    renderTopTagsByCount(data.topTagsByCount);
+                    
+                } catch (error) {
+                    console.error('Fetch analytics error:', error);
+                    showError(error.message);
+                    hasFetched = false; // 允许失败后重试
+                }
+            }
+            
+            return {
+                fetchAnalytics
+            };
+        })();
+
+
+
+        
+        /* --- 10. 页面加载时自动获取数据 (!!! 已修改 !!!) --- */
         document.addEventListener('DOMContentLoaded', () => {
+            // 检查哪个面板是 active 的，然后加载对应的数据
             if (document.getElementById('management-panel').classList.contains('active')) {
                 videoManagementModule.fetchVideos(1, '', true);
             }
+            if (document.getElementById('comments-panel').classList.contains('active')) {
+                commentManagementModule.fetchComments(1, '', '', true);
+            }
+            // (!!! 新增逻辑 !!!)
+            if (document.getElementById('analytics-panel') && document.getElementById('analytics-panel').classList.contains('active')) {
+                analyticsModule.fetchAnalytics();
+            }
+            // 默认是 upload-panel (id=upload-panel) 是 active 的，所以上面三个 if 都不会触发
         });
     </script>
 </body>
