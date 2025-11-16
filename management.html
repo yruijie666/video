@@ -354,16 +354,16 @@
         function openAlertModal(title, message, okCallback) {
             alertModalTitle.textContent = title;
             alertModalMessage.textContent = message;
-            alertModalOkCallback = okCallback; // 存储回调
+            alertModalOkCallback = okCallback;
             alertModal.classList.add('active');
         }
 
         alertModalOkBtn.addEventListener('click', () => {
             alertModal.classList.remove('active');
             if (typeof alertModalOkCallback === 'function') {
-                alertModalOkCallback(); // 执行回调
+                alertModalOkCallback();
             }
-            alertModalOkCallback = null; // 清除回调
+            alertModalOkCallback = null;
         });
 
 
@@ -464,7 +464,7 @@
         })();
 
 
-        /* --- 5. "上传" 面板的上传逻辑 (不变) --- */
+        /* --- 5. "上传" 面板的上传逻辑 (不变, 已指向 /api/manage-videos) --- */
         (function() {
             const submitBtn = document.getElementById('upload-submit-btn');
             const resetBtn = document.getElementById('upload-reset-btn');
@@ -562,7 +562,7 @@
                 submitBtn.disabled = true;
                 resetBtn.disabled = true;
                 submitBtn.textContent = '准备中...';
-                statusMessage.style.display = 'none';
+                statusMessage.style.display = 'none'; 
 
                 const title = titleInput.value;
                 const description = descriptionInput.value;
@@ -583,13 +583,11 @@
                     resetBtn.disabled = false;
                     return;
                 }
-
                 const cos = new COS({
                     SecretId: credentials.tmpSecretId,
                     SecretKey: credentials.tmpSecretKey,
                     SecurityToken: credentials.sessionToken,
                 });
-
                 const coverKey = `covers/${coverFile.name}`;
                 const videoKey = `videos/${videoFile.name}`;
 
@@ -597,7 +595,7 @@
                 showStatus('开始上传...请勿关闭页面', 'success');
                 coverProgressContainer.style.display = 'block';
                 videoProgressContainer.style.display = 'block';
-
+                
                 try {
                     await Promise.all([
                         uploadToCOS(cos, coverFile, coverKey, coverProgressBar),
@@ -607,7 +605,7 @@
                     showStatus('文件上传成功！正在写入数据库...', 'success');
 
                     try {
-                        const response = await fetch('/api/create-video-record', {
+                        const response = await fetch('/api/manage-videos', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -646,9 +644,8 @@
         })();
 
 
-        /* --- 6. (!!! 已修改 !!!) "视频管理" 模块 (暴露 Getters) --- */
+        /* --- 6. "视频管理" 模块 (不变, 已指向 /api/manage-videos) --- */
         const videoManagementModule = (function() {
-            // ... [DOM 元素获取和之前一样] ...
             const tableBody = document.getElementById('manage-video-table-body');
             const searchInput = document.getElementById('manage-search-input');
             const searchBtn = document.getElementById('manage-search-btn');
@@ -666,7 +663,6 @@
             let totalPages = 1;
             let currentSearch = '';
             let videoDataCache = {};
-            
             let pageCache = {};
             let currentCacheKey = '';
             const CACHE_TIMEOUT_MS = 5 * 60 * 1000;
@@ -678,22 +674,16 @@
             }
 
             async function fetchVideos(page, search = '', forceRefresh = false) {
-                // ... [函数内部逻辑不变] ...
                 currentPage = page;
                 currentSearch = search;
-                
                 const newCacheKey = search || '_default';
                 if (newCacheKey !== currentCacheKey) {
                     clearCache();
                     currentCacheKey = newCacheKey;
                 }
-                
-                if (Date.now() - cacheTimestamp > CACHE_TIMEOUT_MS) {
-                    clearCache();
-                }
+                if (Date.now() - cacheTimestamp > CACHE_TIMEOUT_MS) clearCache();
 
                 if (!forceRefresh && pageCache[currentCacheKey] && pageCache[currentCacheKey][page]) {
-                    console.log(`Loading page ${page} from cache...`);
                     const data = pageCache[currentCacheKey][page];
                     renderVideos(data.videos);
                     renderPagination(data.pagination);
@@ -706,7 +696,10 @@
                 tableBody.innerHTML = '<tr><td colspan="6">正在加载...</td></tr>';
 
                 try {
-                    const response = await fetch(`/api/get-videos?page=${page}&limit=5&search=${encodeURIComponent(search)}`);
+                    const response = await fetch(
+                        `/api/manage-videos?page=${page}&limit=5&search=${encodeURIComponent(search)}`, 
+                        { method: 'GET' }
+                    );
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error || '加载失败');
                     
@@ -727,7 +720,6 @@
             }
 
             function renderVideos(videos) {
-                // ... [函数内部逻辑不变] ...
                 videoDataCache = {};
                 if (videos.length === 0) {
                     tableBody.innerHTML = '<tr><td colspan="6">未找到视频。</td></tr>';
@@ -760,13 +752,11 @@
             }
 
             function renderPagination({ currentPage, totalPages, totalCount }) {
-                // ... [函数内部逻辑不变] ...
                 paginationInfo.textContent = `共 ${totalCount} 条记录，第 ${currentPage} / ${totalPages} 页`;
                 prevBtn.disabled = currentPage <= 1;
                 nextBtn.disabled = currentPage >= totalPages;
             }
 
-            // ... [事件监听器逻辑不变] ...
             searchBtn.addEventListener('click', () => fetchVideos(1, searchInput.value, true));
             searchInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') fetchVideos(1, searchInput.value, true);
@@ -788,7 +778,6 @@
             });
 
             function handleDeleteClick(id) {
-                // ... [函数内部逻辑不变] ...
                 const video = videoDataCache[id];
                 deleteTitle.textContent = video.title;
                 deleteIdInput.value = id;
@@ -797,20 +786,17 @@
 
             deleteCancelBtn.addEventListener('click', () => deleteModal.classList.remove('active'));
             deleteConfirmBtn.addEventListener('click', async () => {
-                // ... [函数内部逻辑不变] ...
                 const id = deleteIdInput.value;
                 deleteConfirmBtn.disabled = true;
                 deleteConfirmBtn.textContent = '删除中...';
                 
                 try {
-                    const response = await fetch('/api/delete-video', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ videoId: parseInt(id, 10) })
+                    const response = await fetch(`/api/manage-videos?videoId=${id}`, {
+                        method: 'DELETE',
                     });
                     const result = await response.json();
                     if (!response.ok) throw new Error(result.error);
-                    
+
                     clearCache();
                     showStatus(`视频 (ID: ${id}) 删除成功，正在刷新列表...`, 'success');
                     fetchVideos(currentPage, currentSearch, true);
@@ -828,22 +814,18 @@
                 showGlobalStatus(message, type, 'manage-status-message');
             }
             
-            // (!!! 优化点 #1 !!!)
-            // 返回一个包含当前状态的 Getters
             return { 
                 fetchVideos, 
                 showStatus, 
                 clearCache,
-                // 新增这两个 Getter
                 getCurrentPage: () => currentPage,
                 getCurrentSearch: () => currentSearch
             };
         })();
 
 
-        /* --- 7. (!!! 已修改 !!!) "编辑模态框" 模块 (使用 Getters 刷新) --- */
+        /* --- 7. (!!! 已修复 !!!) "编辑模态框" 模块 (修复了复制/粘贴错误) --- */
         const editModalModule = (function() {
-            // ... [DOM 元素获取和之前一样] ...
             const modal = document.getElementById('edit-modal');
             const titleInput = document.getElementById('edit-title');
             const descriptionInput = document.getElementById('edit-description');
@@ -865,21 +847,16 @@
             }
 
             function openModal(video) {
-                // ... [函数内部逻辑不变] ...
                 if (!video) return;
                 videoIdInput.value = video.id;
                 titleInput.value = video.title;
                 descriptionInput.value = video.description || '';
-                
                 oldCoverKeyInput.value = video.cover_key;
                 oldVideoKeyInput.value = video.video_key;
-
                 editTagInput.setTags(video.tags.map(t => t.tag_name));
-                
                 const coverUrl = video.cover_key ? `${CDN_BASE_URL}${video.cover_key}` : PLACEHOLDER_COVER;
                 coverPreview.innerHTML = `<img src="${coverUrl}" alt="当前封面" onerror="this.src='${PLACEHOLDER_COVER}'; this.onerror=null;">`;
                 videoFilename.textContent = `当前视频: ${video.video_key}`;
-                
                 coverInput.value = null;
                 videoInput.value = null;
                 statusMessage.style.display = 'none';
@@ -887,7 +864,6 @@
                 videoProgressContainer.innerHTML = '';
                 coverProgressContainer.style.display = 'none';
                 videoProgressContainer.style.display = 'none';
-
                 modal.classList.add('active');
             }
             
@@ -897,7 +873,6 @@
             cancelBtn.addEventListener('click', closeModal);
             
             coverInput.addEventListener('change', function(e) {
-                // ... [函数内部逻辑不变] ...
                 const file = e.target.files[0];
                 if (file) {
                     const objectURL = URL.createObjectURL(file);
@@ -910,7 +885,6 @@
             });
 
             saveBtn.addEventListener('click', async () => {
-                // ... [函数上半部分逻辑不变] ...
                 saveBtn.disabled = true;
                 cancelBtn.disabled = true;
                 saveBtn.textContent = '保存中...';
@@ -928,7 +902,6 @@
                 let newVideoKey = null;
 
                 try {
-                    // ... [COS 上传逻辑不变] ...
                     let cos = null;
                     if (newCoverFile || newVideoFile) {
                         const credentials = await window.appGlobals.getSTSCredentials();
@@ -946,6 +919,9 @@
                         newCoverKey = `covers/${newCoverFile.name}`;
                         coverProgressContainer.innerHTML = `<div class="progress-label">新封面上传中...</div><div class="progress-bar-bg"><div class="progress-bar" style="width:0%">0%</div></div>`;
                         coverProgressContainer.style.display = 'block';
+                        
+                        // (!!! 关键修复 !!!)
+                        // 之前这里错误地传入了 newVideoKey，现已修正为 newCoverKey
                         uploadPromises.push(
                             window.appGlobals.uploadToCOS(cos, newCoverFile, newCoverKey, coverProgressContainer.querySelector('.progress-bar'))
                         );
@@ -960,10 +936,12 @@
                         );
                     }
 
+                    // (此 Promise.all 现在可以正确执行了)
                     await Promise.all(uploadPromises);
                     
-                    const response = await fetch('/api/update-video', {
-                        method: 'POST',
+                    // (现在这个 fetch 会被正确调用)
+                    const response = await fetch('/api/manage-videos', {
+                        method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             videoId, title, description, tags,
@@ -975,23 +953,24 @@
                     const result = await response.json();
                     if (!response.ok) throw new Error(result.error);
 
-                    // (!!! 优化点 #2 !!!)
-                    // 1. 通过 Getters 获取当前状态
                     const page = videoManagementModule.getCurrentPage();
                     const search = videoManagementModule.getCurrentSearch();
-                    
                     closeModal(); 
-                    videoManagementModule.clearCache(); // 2. 清空缓存
-                    // 3. 在主列表显示成功消息
+                    videoManagementModule.clearCache();
                     videoManagementModule.showStatus(`视频 (ID: ${videoId}) 更新成功！`, 'success'); 
-                    // 4. 强制刷新列表 (使用获取到的 page 和 search)
                     videoManagementModule.fetchVideos(page, search, true);
                     
                 } catch (error) {
                     console.error('更新失败:', error);
                     showEditStatus(`更新失败: ${error.message}`, 'error');
                     
+                    // (!!! 关键 !!!) 
+                    // 这里的补偿逻辑现在也会正确触发了
+                    // 如果 COS 上传成功 (newCoverKey/newVideoKey 存在)
+                    // 但数据库 fetch('/api/manage-videos') 失败了 (error.message.includes('数据库'))
+                    // 它会调用 compensateCOS 回滚
                     if ((newCoverKey || newVideoKey) && (error.message.includes('数据库') || error.message.includes('更新失败'))) {
+                        // (注意: compensateCOS 只会删除你传给它的 Key)
                         await window.appGlobals.compensateCOS(newCoverKey, newVideoKey);
                         showEditStatus(`数据库更新失败: ${error.message}。新上传的 COS 文件已回滚。`, 'error');
                     }
