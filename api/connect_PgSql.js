@@ -14,7 +14,8 @@ module.exports = async (req, res) => {
         return res.status(405).json({ error: '只允许 GET 请求' });
     }
 
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
+    //res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
+    res.setHeader('Cache-Control', 'max-age=60, s-maxage=300, stale-while-revalidate');
 
     try {
         const searchTerm = req.query.search;

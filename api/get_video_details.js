@@ -12,7 +12,8 @@ module.exports = async (req, res) => {
         return res.status(500).json({ error: '数据库连接配置缺失' });
     }
     
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
+    //res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
+    res.setHeader('Cache-Control', 'max-age=60, s-maxage=300, stale-while-revalidate');
 
     try {
         const videoId = req.query.id;

@@ -12,7 +12,8 @@ module.exports = async (req, res) => {
     }
 
     // 设置 5 分钟缓存
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
+    //res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
+    res.setHeader('Cache-Control', 'max-age=60, s-maxage=300, stale-while-revalidate');
 
     try {
         // (修复) 使用标签模板写法 sql`...`
