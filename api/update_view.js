@@ -15,18 +15,29 @@ module.exports = async (req, res) => {
         return res.status(405).json({ error: '只允许 POST (或 GET) 请求' });
     }
     
+    const videoId = req.query.id;
+    if (!videoId) {
+        return res.status(400).json({ error: '缺少 video id' });
+    }
+    
+    // (修复 3) 拦截非法字符，防止数据库底层 500
+    if (isNaN(Number(videoId)) || Number(videoId) < 0) {
+        return res.status(400).json({ error: '非法的 video id 格式' });
+    }
+    
     try {
-        const videoId = req.query.id;
-        if (!videoId) {
-            return res.status(400).json({ error: '缺少 video id' });
-        }
-        
-        // (修复) 使用 sql`...` 并直接嵌入 ${videoId}
-        await sql`
+        // (修复 2) 加上 RETURNING id，用于判断是否真的更新了行
+        const result = await sql`
             UPDATE videos 
             SET views_count = views_count + 1 
-            WHERE id = ${videoId};
+            WHERE id = ${videoId}
+            RETURNING id;
         `;
+        
+        // 如果没有返回 id，说明数据库里根本没这个视频
+        if (result.length === 0) {
+            return res.status(404).json({ error: '视频不存在，无法更新播放量' });
+        }
         
         res.status(204).end();
 

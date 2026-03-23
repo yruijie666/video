@@ -1295,16 +1295,35 @@
                     tableBody.innerHTML = '<tr><td colspan="4">未找到评论。</td></tr>';
                     return;
                 }
+
+                const MAX_LEN = 50; // 后台也可以设为 50，或者为了紧凑设为 30
+
                 tableBody.innerHTML = comments.map(comment => {
+                    const rawContent = comment.content;
+                    let contentHTML = '';
+
+                    // 核心安全截断逻辑复用
+                    if (rawContent.length <= MAX_LEN) {
+                        contentHTML = `<span class="text-content">${escapeHTML(rawContent)}</span>`;
+                    } else {
+                        const rawShort = rawContent.substring(0, MAX_LEN) + '...';
+                        contentHTML = `
+                            <span class="text-content" 
+                                data-full="${escapeHTML(rawContent)}" 
+                                data-short="${escapeHTML(rawShort)}">${escapeHTML(rawShort)}</span>
+                            <span class="expand-btn" style="color: #3498db; cursor: pointer; margin-left: 8px; font-size: 13px; user-select: none;">展开</span>
+                        `;
+                    }
+
                     return `
                     <tr data-comment-id="${comment.comment_id}">
-                        <td class="comment-content-cell">${escapeHTML(comment.content)}</td>
+                        <td class="comment-content-cell">${contentHTML}</td>
                         <td class="video-title-cell">${escapeHTML(comment.video_title)}</td>
                         <td>${comment.created_at}</td>
                         <td class="action-cell">
                             <button class="btn-action-delete" 
                                     data-id="${comment.comment_id}" 
-                                    data-content="${escapeHTML(comment.content)}">删除</button>
+                                    data-content="${escapeHTML(rawContent)}">删除</button>
                         </td>
                     </tr>
                 `}).join('');
@@ -1369,7 +1388,24 @@
 
 
             // 删除按钮 (使用事件委托)
+            // 表格内的点击事件 (使用事件委托)
             tableBody.addEventListener('click', (e) => {
+                // 1. 处理新增的展开/收起功能
+                if (e.target.classList.contains('expand-btn')) {
+                    const btn = e.target;
+                    const textSpan = btn.previousElementSibling;
+                    
+                    if (btn.innerText === '展开') {
+                        textSpan.textContent = textSpan.getAttribute('data-full'); // 必须用 textContent 防 XSS
+                        btn.innerText = '收起';
+                    } else {
+                        textSpan.textContent = textSpan.getAttribute('data-short');
+                        btn.innerText = '展开';
+                    }
+                    return; // 结束当前操作，不再往下走
+                }
+
+                // 2. 原本就有的删除逻辑
                 if (e.target.classList.contains('btn-action-delete')) {
                     const id = e.target.dataset.id;
                     const content = e.target.dataset.content;

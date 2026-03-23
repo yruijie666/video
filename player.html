@@ -38,7 +38,12 @@
         .comment:last-child { border-bottom: none; }
         .comment-author { font-weight: 600; color: #444; margin-bottom: 5px; }
         .comment-date { font-size: 0.85rem; color: #999; float: right; }
-        .comment-content { color: #555; }
+        /* 1. 之前加的强制换行依然保留，防止 50 个连续字母撑爆宽度 */
+        .comment-content { color: #555; word-break: break-all; overflow-wrap: break-word; }
+        /* 2. 新增展开按钮的样式 */
+        .expand-btn {color: #2a7aff;cursor: pointer;font-size: 0.9rem;margin-left: 8px;user-select: none;font-weight: 500;}
+
+        .expand-btn:hover {text-decoration: underline;}
     </style>
 </head>
 <body>
@@ -171,45 +176,65 @@
                 return `<a href="index.html?search=${encodeURIComponent(safeTag)}" class="tag">${safeTag}</a>`;
             }).join('');
         }
+        // 定义最大显示字符数
+        const MAX_COMMENT_LENGTH = 50;
+
+        // === 修复后的评论生成器 ===
+        function createCommentHTML(comment, isNew = false) {
+            const rawContent = comment.content; // 拿到原汁原味的输入
+            const safeDate = escapeHTML(comment.created_at);
+            
+            let contentHTML = '';
+            
+            // 1. 判断原生字符长度（<script>... 只有31个字符，不会触发截断）
+            if (rawContent.length <= MAX_COMMENT_LENGTH) {
+                contentHTML = `<span class="text-content">${escapeHTML(rawContent)}</span>`;
+            } else {
+                // 2. 在原生文本上进行截断，绝不会切碎 HTML 实体
+                const rawShort = rawContent.substring(0, MAX_COMMENT_LENGTH) + '...';
+                
+                // 3. 存入 data 属性和渲染到标签中间时，必须分别进行转义！
+                contentHTML = `
+                    <span class="text-content" 
+                        data-full="${escapeHTML(rawContent)}" 
+                        data-short="${escapeHTML(rawShort)}">${escapeHTML(rawShort)}</span>
+                    <span class="expand-btn">展开</span>
+                `;
+            }
+
+            const bgStyle = isNew ? 'style="background-color: #f8f9ff;"' : '';
+            
+            return `
+                <div class="comment" ${bgStyle}>
+                    <span class="comment-date">${safeDate}</span>
+                    <div class="comment-author">游客</div>
+                    <p class="comment-content">
+                        ${contentHTML}
+                    </p>
+                </div>
+            `;
+        }
 
         // --- (!! 已修正 !!) ---
+        // 替换原来的 renderComments
         function renderComments(comments) {
             if (!comments || comments.length === 0) {
-                // (修复1) 给占位符添加一个唯一的 ID
                 commentsList.innerHTML = '<p id="no-comments-placeholder">还没有评论，快来抢沙发吧！</p>';
                 return;
             }
-            commentsList.innerHTML = comments.map(comment => {
-                return `
-                    <div class="comment">
-                        <span class="comment-date">${escapeHTML(comment.created_at)}</span>
-                        <div class="comment-author">游客</div>
-                        <p class="comment-content">${escapeHTML(comment.content)}</p>
-                    </div>
-                `;
-            }).join('');
+            // 使用新的生成器映射数组
+            commentsList.innerHTML = comments.map(c => createCommentHTML(c)).join('');
         }
         
         // --- (!! 已修正 !!) ---
+        // 替换原来的 renderNewComment
         function renderNewComment(comment) {
-            // (修复2) 不再使用 querySelector('p')
-            // 而是精确查找那个占位符 ID
             const placeholder = document.getElementById('no-comments-placeholder');
-            
             if (placeholder) {
-                // (修复3) 如果找到了占位符，就只删除它，而不是清空整个列表
                 placeholder.remove();
             }
-
-            // (不变) 正常创建新评论
-            const commentHTML = `
-                <div class="comment" style="background-color: #f8f9ff;">
-                    <span class="comment-date">${escapeHTML(comment.created_at)}</span>
-                    <div class="comment-author">游客</div>
-                    <p class="comment-content">${escapeHTML(comment.content)}</p>
-                </div>
-            `;
-            // (不变) 插入到顶部
+            // 使用新的生成器创建新评论 HTML，并标记为 isNew (背景色高亮)
+            const commentHTML = createCommentHTML(comment, true);
             commentsList.insertAdjacentHTML('afterbegin', commentHTML);
         }
 
@@ -256,6 +281,24 @@
         document.addEventListener('DOMContentLoaded', loadVideoData);
         commentForm.addEventListener('submit', handleCommentSubmit);
         searchForm.addEventListener('submit', handleSearch);
+
+        // === 修复后的点击事件 ===
+        commentsList.addEventListener('click', function(event) {
+            if (event.target.classList.contains('expand-btn')) {
+                const btn = event.target;
+                const textSpan = btn.previousElementSibling;
+                
+                if (btn.innerText === '展开') {
+                    // !!! 核心安全修复：使用 textContent，只将其当作纯文本渲染，杜绝一切 XSS 执行可能 !!!
+                    textSpan.textContent = textSpan.getAttribute('data-full');
+                    btn.innerText = '收起';
+                } else {
+                    textSpan.textContent = textSpan.getAttribute('data-short');
+                    btn.innerText = '展开';
+                }
+            }
+        });
+
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </body>

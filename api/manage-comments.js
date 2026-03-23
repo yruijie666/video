@@ -74,20 +74,29 @@ const handleGet = async (req, res, sql) => {
 
 // --- 处理器 2: DELETE (删除评论) ---
 const handleDelete = async (req, res, sql) => {
-    try {
-        const { commentId } = req.query; 
-        if (!commentId) {
-            return res.status(400).json({ error: '缺少 commentId' });
-        }
+    const { commentId } = req.query; 
+    if (!commentId) {
+        return res.status(400).json({ error: '缺少 commentId' });
+    }
 
+    // (修复 4) 防御非数字 ID 攻击
+    if (isNaN(Number(commentId)) || Number(commentId) < 0) {
+        return res.status(400).json({ error: '非法的 commentId 格式' });
+    }
+
+
+    try {
+        
         console.log(`[Delete-Comment] 收到 ID:${commentId} 的删除请求`);
 
+        // (修复 8) Neon 的 sql 标签必须加 RETURNING 才能用 length === 0 判断
         const result = await sql`
             DELETE FROM comments 
             WHERE comment_id = ${commentId}
+            RETURNING comment_id;
         `;
 
-        if (result.rowCount === 0) {
+        if (result.length === 0) {
             return res.status(404).json({ error: '评论不存在或已被删除' });
         }
 

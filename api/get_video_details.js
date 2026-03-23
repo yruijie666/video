@@ -15,11 +15,18 @@ module.exports = async (req, res) => {
     //res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
     res.setHeader('Cache-Control', 'max-age=60, s-maxage=300, stale-while-revalidate');
 
+    const videoId = req.query.id;
+    if (!videoId) {
+        return res.status(400).json({ error: '缺少 video id' });
+    }
+    
+    // (完美修复) 防御非数字 ID 查询，防止数据库底层报 500 错误
+    if (isNaN(Number(videoId)) || Number(videoId) < 0) {
+        return res.status(400).json({ error: '非法的 video id 格式' });
+    }
+
     try {
-        const videoId = req.query.id;
-        if (!videoId) {
-            return res.status(400).json({ error: '缺少 video id' });
-        }
+
 
         // (修复) 使用 sql`...` 并直接嵌入 ${videoId}
         const result = await sql`

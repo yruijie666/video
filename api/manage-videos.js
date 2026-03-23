@@ -6,8 +6,14 @@ const COS = require('cos-nodejs-sdk-v5');
 // (此代码来自 get-videos.js)
 const handleGet = async (req, res, sql) => {
     try {
-        const page = parseInt(req.query.page || '1', 10);
-        const limit = parseInt(req.query.limit || '5', 10);
+        // (修复 6) 极致的边界防御：确保 page 至少为 1，limit 必须在 1~10 之间
+        let page = parseInt(req.query.page || '1', 10);
+        if (isNaN(page) || page < 1) page = 1;
+
+        let limit = parseInt(req.query.limit || '5', 10);
+        if (isNaN(limit) || limit < 1) limit = 1;
+        if (limit > 10) limit = 10; // 强制最大值为 10，防止过大请求
+
         const search = req.query.search || '';
         const offset = (page - 1) * limit;
         const searchPattern = `%${search}%`;
@@ -112,7 +118,7 @@ const handleCreate = async (req, res, sql) => {
         await sql`COMMIT`; // 2. 提交事务
         console.log(`(事务) [Create] COMMIT 成功`);
         
-        return res.status(200).json({ 
+        return res.status(201).json({ 
             message: '数据库记录创建成功', 
             video: { newVideoId, title, tagIds } 
         });
